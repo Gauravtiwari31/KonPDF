@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KonPDF only ever shares or opens its own copies in the cache folder. -->
+<paths>
+    <cache-path name="picked" path="picked/" />
+    <cache-path name="results" path="results/" />
+</paths>

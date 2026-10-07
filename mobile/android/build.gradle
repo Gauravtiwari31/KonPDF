@@ -1,0 +1,38 @@
+buildscript {
+    ext {
+        buildToolsVersion = "37.0.0"
+        minSdkVersion = 24
+        compileSdkVersion = 37
+        targetSdkVersion = 36
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.2.0"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    }
+}
+
+/**
+ * Windows only: when the Android SDK sits under a folder with a space
+ * ("C:\Users\First Last"), CMake calls clang++ by its 8.3 short name
+ * (CLANG_~1.EXE). Clang picks C or C++ mode from its file name, so native
+ * libraries (the app's and react-native-screens') would link without the C++
+ * standard library. This keeps clang in C++ mode. No effect elsewhere.
+ */
+if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+    subprojects { sub ->
+        ["com.android.application", "com.android.library"].each { id ->
+            sub.plugins.withId(id) {
+                sub.android.defaultConfig.externalNativeBuild.cmake.arguments("-DCMAKE_CXX_FLAGS=--driver-mode=g++")
+            }
+        }
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+: keep everything the app stores (session tokens, cached profile,
+  preferences) out of cloud backups and device-to-device transfers. Tasks live
+  on the server, so a new phone only needs the user to log in again.
+  allowBackup="false" in the manifest covers cloud backup only; without these
+  rules a phone-to-phone transfer would still copy the app's data.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>
