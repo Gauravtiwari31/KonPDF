@@ -88,6 +88,42 @@ def fit_into(img: Image.Image, w: int, h: int, fit: str, background: str = "#fff
     return canvas
 
 
+ASPECTS = {"1:1": 1.0, "4:3": 4 / 3, "3:4": 3 / 4, "3:2": 3 / 2, "2:3": 2 / 3, "16:9": 16 / 9, "9:16": 9 / 16, "4:5": 4 / 5}
+
+
+def apply_transform(img: Image.Image, opts: dict[str, Any]) -> Image.Image:
+    """Crop to an aspect ratio (centred), rotate in 90° steps (clockwise), flip."""
+    crop = opts.get("crop")
+    if crop:
+        ratio = ASPECTS.get(str(crop))
+        if ratio is None:
+            raise KonError("INVALID_OPTIONS")
+        w, h = img.size
+        if w / h > ratio:
+            new_w = round(h * ratio)
+            img = img.crop(((w - new_w) // 2, 0, (w - new_w) // 2 + new_w, h))
+        else:
+            new_h = round(w / ratio)
+            img = img.crop((0, (h - new_h) // 2, w, (h - new_h) // 2 + new_h))
+    rotate = opts.get("rotate")
+    if rotate not in (None, "", 0):
+        try:
+            angle = int(rotate) % 360
+        except (TypeError, ValueError):
+            raise KonError("INVALID_OPTIONS") from None
+        if angle not in (0, 90, 180, 270):
+            raise KonError("INVALID_OPTIONS")
+        transpose = {90: Image.Transpose.ROTATE_270, 180: Image.Transpose.ROTATE_180, 270: Image.Transpose.ROTATE_90}
+        if angle:
+            img = img.transpose(transpose[angle])
+    flip = opts.get("flip")
+    if flip:
+        if flip not in ("horizontal", "vertical"):
+            raise KonError("INVALID_OPTIONS")
+        img = img.transpose(Image.Transpose.FLIP_LEFT_RIGHT if flip == "horizontal" else Image.Transpose.FLIP_TOP_BOTTOM)
+    return img
+
+
 def apply_geometry(img: Image.Image, opts: dict[str, Any]) -> tuple[Image.Image, float | None, bool]:
     """Resizes per `opts`. Returns (image, dpi, dimensions_are_fixed)."""
     mode = opts.get("mode", "filesize")
@@ -127,7 +163,7 @@ def apply_geometry(img: Image.Image, opts: dict[str, Any]) -> tuple[Image.Image,
         return fit_into(img, round(w_in * p_dpi), round(h_in * p_dpi), px_fit, background, focus), p_dpi, True
     if mode == "dpi":
         return img, _num(opts, "dpi", required=True), True
-    if mode in ("filesize", "compress"):
+    if mode in ("filesize", "compress", "transform"):
         return img, dpi, False
     raise KonError("INVALID_OPTIONS")
 
@@ -233,6 +269,8 @@ def resize(inputs: list[Input], options: dict[str, Any], out_dir: Path, work: Pa
     outputs = []
     for item in inputs:
         frame = images.open_image(item.path, item.fmt, item.name, notes)
+        if opts.get("crop") or opts.get("rotate") or opts.get("flip"):
+            frame = apply_transform(frame, opts)
         fmt = str(opts.get("format") or "").lower() or None
         fmt = "jpg" if fmt == "jpeg" else fmt
         if fmt and fmt not in IMAGE_OUT:

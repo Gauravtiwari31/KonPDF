@@ -36,7 +36,7 @@ TOOLS: dict[str, tuple[set[str], Runner]] = {
         _convert,
     ),
     "resize": (
-        {"mode", "preset", "width", "height", "fit", "focus", "percent", "longest", "upscale", "print", "dpi", "max_kb", "min_kb", "format", "quality", "strip_metadata", "background"},
+        {"mode", "preset", "width", "height", "fit", "focus", "percent", "longest", "upscale", "print", "dpi", "max_kb", "min_kb", "format", "quality", "strip_metadata", "background", "rotate", "flip", "crop"},
         resize_tool.resize,
     ),
     "enhance": ({"preset", "filter", "adjust", "format", "quality", "preview"}, enhance_tool.enhance),

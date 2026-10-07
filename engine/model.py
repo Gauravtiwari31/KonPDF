@@ -81,16 +81,36 @@ def _words(text: str) -> list[str]:
     return re.findall(r"[a-zA-Zà-ÿÀ-ßñç\-']+", text.lower())
 
 
+# Everyday English and file words. They say nothing about other languages
+# ("reduce" is also Spanish, "pdf" is everywhere), so only English counts them.
+EN_VOCAB = set(
+    """the to a an this that these those it its is are be was were make made convert converting change turn into as in on at
+    for of and or with from by my me i im i'm you your can could would will should please pls plz need want wanna help
+    reduce compress compressed resize shrink enhance improve fix clean photo photos picture pictures pic pics image images
+    file files document documents doc page pages size format smaller bigger small big less more than under below above
+    over max min maximum minimum quality clear sharp rotate flip crop merge combine join split extract delete remove add
+    password lock unlock watermark number numbers word excel it's also then now just only all every each same one two
+    three first second third last left right new old do does did done get give keep put save send upload form hd
+    so too very much little bit ok okay yes no not dont don't how what why when where which who there here up down
+    type kind into onto please thanks thank sign signature mobile phone app scan scanned copy black white color colour
+    instead actually anyway again still something nice good bad great better best really maybe some any other another
+    send share open view see look show tell know think like love try use using used want would should must""".split()
+)
+DOMAIN_WORDS = {"pdf", "pdfs", "jpg", "jpeg", "png", "webp", "heic", "gif", "bmp", "tiff", "svg", "docx", "xlsx", "csv", "json", "kb", "mb", "px", "ppt", "pptx"}
+
+
 def detect_language(text: str, hint: str | None = None) -> str:
-    """The language a message is written in; `hint` (app setting) breaks ties."""
+    """The language a message is written in. With no telling words (just "pdf"), the app's language (`hint`)."""
     if re.search(r"[ऀ-ॿ]", text):
         return "hi"
-    words = _words(text)
+    words = [w for w in _words(text) if w not in DOMAIN_WORDS]
     if not words:
         return hint if hint in LANGS else "en"
     scores: dict[str, float] = {}
     for lang, vocab in _STOPWORDS.items():
-        scores[lang] = sum(1 for w in words if w in vocab) + 2 * sum(1 for w in words if w in _STRONG.get(lang, set()))
+        counted = words if lang == "en" else [w for w in words if w not in EN_VOCAB]
+        scores[lang] = sum(1 for w in counted if w in vocab) + 2 * sum(1 for w in counted if w in _STRONG.get(lang, set()))
+    scores["en"] += sum(1 for w in words if w in EN_VOCAB and w not in _STOPWORDS["en"])
     if re.search(r"[áéíóúñ¿¡]", text.lower()):
         scores["es"] += 1.5
     if re.search(r"[àâçèéêëîïôûœ]", text.lower()):
@@ -130,7 +150,12 @@ ACTIONS: dict[str, list[str]] = {
         "zusammenfügen", "kombinieren", "verbinden", "mesclar", "fusionne", "fusionnez", "junte", "juntar",
     ],
     "split": ["split", "separate", "break into", "alag", "alag karo", "अलग", "dividir", "separar", "diviser", "séparer", "aufteilen", "trennen", "teilen"],
-    "rotate": ["rotate", "turn", "ghumao", "ghuma do", "घुमाओ", "girar", "rotar", "gira", "pivoter", "tourner", "drehen", "rodar"],
+    "rotate": [
+        "rotate", "turn left", "turn right", "turn it left", "turn it right", "turn sideways", "turn upside down", "upside down",
+        "sideways", "ghumao", "ghuma do", "घुमाओ", "girar", "rotar", "gira", "pivoter", "tourner", "drehen", "rodar",
+    ],
+    "flip": ["flip", "mirror", "mirrored", "flip horizontally", "flip vertically", "espejo", "voltear", "miroir", "retourner", "spiegeln", "espelhar", "inverter"],
+    "crop": ["crop", "cut to", "trim", "make it square", "square photo", "square image", "recortar", "recadrer", "rogner", "zuschneiden", "cortar"],
     "extract": ["extract", "keep only", "only page", "only pages", "sirf page", "sirf pages", "निकालो", "extraer", "solo la página", "solo las páginas", "extraire", "extrahieren", "extrair"],
     "delete": [
         "delete page", "delete pages", "remove page", "remove pages", "page hatao", "pages hatao", "page hata", "पेज हटाओ",
@@ -138,7 +163,8 @@ ACTIONS: dict[str, list[str]] = {
         "seiten löschen", "seite entfernen", "excluir página", "remover página",
     ],
     "protect": [
-        "password protect", "add password", "add a password", "set password", "lock", "encrypt", "taala", "lock karo", "password laga",
+        "password protect", "add password", "add a password", "set password", "set a password", "put a password", "password on it",
+        "secure it", "protect it", "protect this", "lock", "encrypt", "taala", "lock karo", "password laga",
         "पासवर्ड लगा", "ताला", "proteger", "contraseña", "bloquear", "verrouiller", "protéger", "mot de passe", "schützen",
         "passwort", "verschlüsseln", "senha",
     ],
@@ -147,7 +173,7 @@ ACTIONS: dict[str, list[str]] = {
         "desbloquear", "quitar contraseña", "quitar la contraseña", "déverrouiller", "enlever le mot de passe", "entsperren",
         "passwort entfernen", "remover senha", "tirar a senha",
     ],
-    "watermark": ["watermark", "वॉटरमार्क", "marca de agua", "filigrane", "wasserzeichen", "marca d'água", "marca dágua"],
+    "watermark": ["watermark", "stamp", "वॉटरमार्क", "marca de agua", "filigrane", "wasserzeichen", "marca d'água", "marca dágua"],
     "page_numbers": [
         "page number", "page numbers", "number the pages", "numbering", "page no", "पेज नंबर", "numerar", "número de página",
         "números de página", "numéroter", "numéros de page", "seitenzahlen", "nummerieren", "numeração", "numerar páginas",
@@ -203,7 +229,7 @@ PRESET_WORDS: dict[str, list[str]] = {
     "full_hd": ["full hd", "1080p", "fhd"],
     "hd": ["hd", "720p"],
     "uhd_4k": ["4k", "uhd"],
-    "a4_300dpi": ["a4 print", "print a4"],
+    "a4_300dpi": ["a4 print", "print a4", "a4", "a4 size"],
     "email": ["email", "e-mail", "mail", "gmail", "correo", "courriel"],
 }  # fmt: skip
 
@@ -241,6 +267,11 @@ SHEET_FMTS = {"xlsx", "xls", "csv", "tsv", "json", "ods"}
 SLIDE_FMTS = {"pptx", "ppt", "odp"}
 
 OUT_OF_SCOPE = {
+    "background": [
+        "remove background", "remove the background", "background remove", "remove bg", "bg remove", "background hatao",
+        "background hata do", "transparent background", "change background", "quitar fondo", "quitar el fondo",
+        "supprimer l'arrière-plan", "enlever le fond", "hintergrund entfernen", "remover fundo", "tirar o fundo", "बैकग्राउंड हटाओ",
+    ],
     "video": ["video", "mp4", "mov", "avi", "mkv", "वीडियो", "vídeo", "vidéo"],
     "audio": ["audio", "mp3", "wav", "song", "music", "gaana", "गाना", "ऑडियो", "música", "musique", "musik", "áudio"],
     "ocr": ["ocr", "read the text", "extract text from image", "text from photo", "text from image", "image to text", "photo to text", "scan to text", "editable text from scan", "टेक्स्ट निकालो"],
@@ -263,6 +294,71 @@ def _has(text: str, phrases: list[str]) -> bool:
         elif re.search(r"(?<![\w])" + re.escape(phrase) + r"(?![\w])", text):
             return True
     return False
+
+
+# --------------------------------------------------------------------------
+# Typo tolerance: "compres" → compress, "pfd" → pdf, "pasport" → passport
+# --------------------------------------------------------------------------
+
+
+def _edit_distance(a: str, b: str, limit: int) -> int:
+    """Damerau–Levenshtein (adjacent swaps count as one edit), stopping early past `limit`."""
+    if abs(len(a) - len(b)) > limit:
+        return limit + 1
+    prev2: list[int] = []
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i] + [0] * len(b)
+        for j, cb in enumerate(b, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb))
+            if i > 1 and j > 1 and ca == b[j - 2] and a[i - 2] == cb:
+                cur[j] = min(cur[j], prev2[j - 2] + 1)
+        if min(cur) > limit:
+            return limit + 1
+        prev2, prev = prev, cur
+    return prev[-1]
+
+
+_KEYWORDS: set[str] = set()
+_KNOWN: set[str] = set()
+
+
+def _vocab() -> tuple[set[str], set[str]]:
+    """Single-word keywords NW acts on, and every word it already knows (never "corrected")."""
+    if not _KEYWORDS:
+        for table in (ACTIONS, FORMAT_WORDS, PRESET_WORDS, FILTER_WORDS):
+            for phrases in table.values():
+                for phrase in phrases:
+                    for word in phrase.split():
+                        if word.isascii() and word.isalpha() and len(word) >= 3:
+                            _KEYWORDS.add(word)
+        _KEYWORDS.update({"pages", "page", "password", "image", "images", "photo", "photos", "picture", "size"})
+        _KNOWN.update(EN_VOCAB, _KEYWORDS, *_STOPWORDS.values(), *_STRONG.values())
+    return _KEYWORDS, _KNOWN
+
+
+def correct_typos(text: str) -> str:
+    keywords, known = _vocab()
+
+    def fix(match: re.Match) -> str:
+        word = match.group(0)
+        if word in known or not word.isascii() or len(word) < 3:
+            return word
+        limit = 1 if len(word) <= 5 else 2
+        best, best_d = word, limit + 1
+        for candidate in keywords:
+            # Typos keep roughly the same length ("instead" is not "insta").
+            if abs(len(candidate) - len(word)) > 1:
+                continue
+            # Three-letter words only match formats ("pfd" → "pdf"), never ordinary words.
+            if len(word) == 3 and candidate not in DOMAIN_WORDS:
+                continue
+            d = _edit_distance(word, candidate, limit)
+            if d < best_d or (d == best_d and len(candidate) > len(best)):
+                best, best_d = candidate, d
+        return best if best_d <= limit else word
+
+    return re.sub(r"[a-z]+", fix, text)
 
 
 # --------------------------------------------------------------------------
@@ -305,10 +401,33 @@ class Facts:
     upscale: bool = False
     denoise: bool = False
     strip: bool = False
+    flip: str | None = None  # "horizontal" | "vertical"
+    crop: str | None = None  # "1:1", "16:9"...
+
+
+ORDINALS = {"first": "1", "1st": "1", "second": "2", "2nd": "2", "third": "3", "3rd": "3", "fourth": "4", "4th": "4", "fifth": "5", "5th": "5", "last": "last", "pehla": "1", "pehle": "1", "aakhri": "last", "akhri": "last"}
+IMAGE_TARGET_WORDS = {"image", "images", "picture", "pictures", "photo", "photos", "pic", "pics", "jpgs", "photo mein", "imagen", "imágenes", "imagens", "bilder", "bild"}
+PASSWORD_FILLER = {
+    "is", "hai", "=", ":", "laga", "lagao", "lagado", "do", "de", "karo", "kar", "set", "add", "to", "of", "with", "as", "the", "a",
+    "me", "mein", "should", "be", "use", "it", "this", "pdf", "file", "please", "rakh", "rakho", "ka", "ki", "ke", "es", "est",
+    "ist", "é", "será", "sera", "on", "protect", "remove", "hatao", "using", "my", "new", "old", "current", "and", "then",
+}  # fmt: skip
+
+
+def _password(raw: str) -> str | None:
+    """The word after "password" / "lock with" that isn't filler ("password laga do 1234" → 1234)."""
+    m = re.search(r"(?:password|passcode|passwort|पासवर्ड|contraseña|mot de passe|senha|\bpin\b|lock(?:\s+it)?\s+with)(.*)", raw, re.I)
+    if not m:
+        return None
+    for token in re.findall(r"[^\s\"'“”‘’,]+", m.group(1))[:6]:
+        token = token.strip(".:;!?")
+        if len(token) >= 4 and token.lower() not in PASSWORD_FILLER:
+            return token
+    return None
 
 
 def extract(raw: str) -> Facts:
-    text = _norm(raw)
+    text = correct_typos(_norm(raw))
     f = Facts()
 
     # Sizes: ranges first ("20-50 kb", "20 to 50 kb"), then single sizes.
@@ -370,14 +489,38 @@ def extract(raw: str) -> Facts:
         spec = re.sub(r"\s*(?:to|–)\s*", "-", pages.group(1))
         spec = re.sub(r"\s*(?:and|aur|y|et|und|e)\s*", ",", spec)
         f.pages = re.sub(r"\s+", "", spec)
+    else:
+        # "first 3 pages", "the last page", "second page", "pehla page"
+        first_n = re.search(r"\bfirst\s+(\d{1,3})\s+pages?", text)
+        ordinal = re.search(r"\b(" + "|".join(ORDINALS) + r")\s+(?:page|पेज|página|seite)", text)
+        if first_n:
+            f.pages = f"1-{first_n.group(1)}"
+        elif ordinal:
+            f.pages = ORDINALS[ordinal.group(1)]
 
-    pw = re.search(r"(?:password|पासवर्ड|contraseña|mot de passe|passwort|senha)\s*(?:is|hai|=|:|es|est|ist|é)?\s*[\"'“”]?([^\s\"'“”]{4,64})", raw, re.I)
-    if pw and pw.group(1).lower() not in ("protect", "lagao", "laga", "hatao", "remove", "add", "set", "karo"):
-        f.password = pw.group(1)
+    f.password = _password(raw)
+
+    aspect = re.search(r"\b(1:1|4:3|3:4|3:2|2:3|16:9|9:16|4:5)\b", text)
+    if aspect:
+        f.crop = aspect.group(1)
+    elif _has(text, ["square", "1 by 1", "chaukor", "cuadrada", "carré", "quadratisch", "quadrada"]):
+        f.crop = "1:1"
+    if _has(text, ["vertical", "vertically", "top to bottom", "upside"]) and _has(text, ["flip", "mirror"]):
+        f.flip = "vertical"
+    elif _has(text, ["flip", "mirror", "mirrored", "espejo", "voltear", "miroir", "spiegeln", "espelhar"]):
+        f.flip = "horizontal"
 
     quoted = re.search(r"[\"“'‘]([^\"”'’]{1,80})[\"”'’]", raw)
     if quoted:
         f.text = quoted.group(1).strip()
+    else:
+        # "stamp DRAFT on it", "watermark it with confidential"
+        mark = re.search(r"(?:watermark|stamp)\s+(?:it\s+|this\s+|the\s+pdf\s+)?(?:with\s+|as\s+|of\s+)?([^\s,.]+(?:\s+[^\s,.]+)?)", raw, re.I)
+        if mark:
+            skip = {"on", "it", "this", "to", "the", "a", "in", "across", "every", "all", "page", "pages", "pdf", "file"}
+            words = [w for w in mark.group(1).split() if w.lower() not in skip]
+            if words and words[0].lower() not in ("add", "please", "karo", "lagao"):
+                f.text = " ".join(words[:2]).upper()
 
     for fmt, words in FORMAT_WORDS.items():
         for w in words:
@@ -401,6 +544,9 @@ def extract(raw: str) -> Facts:
     if tgt2:
         candidates.insert(0, tgt2.group(1))
     for word in candidates:
+        if word in IMAGE_TARGET_WORDS:
+            f.target = "jpg"  # "to images", "as pictures"
+            break
         for fmt, words in FORMAT_WORDS.items():
             if word in words:
                 f.target = fmt
@@ -422,7 +568,7 @@ def extract(raw: str) -> Facts:
             f.actions.add(action)
     # "delete some pages", "remove the last page", "keep just pages 2-4"
     page_word = r"(?:pages?|पेज|páginas?|seiten?|pannon?)"
-    if re.search(r"\b(?:delete|remove|hatao|hata do|eliminar|borrar|supprimer|löschen|entfernen|excluir|remover)\b.{0,25}" + page_word, text) or re.search(
+    if re.search(r"\b(?:delete|remove|get rid of|drop|erase|cut out|hatao|hata do|eliminar|borrar|quitar|supprimer|enlever|löschen|entfernen|excluir|remover|tirar)\b.{0,25}" + page_word, text) or re.search(
         page_word + r".{0,15}(?:hatao|hata do|हटाओ)", text
     ):
         f.actions.add("delete")
@@ -531,6 +677,24 @@ T: dict[str, dict[str, str]] = {
         "de": "In welches Format? Zum Beispiel PDF, JPG, PNG, Word oder Excel.",
         "pt": "Para qual formato? Por exemplo PDF, JPG, PNG, Word ou Excel.",
     },
+    "ask_cant_output": {
+        "en": "KonPDF can open {fmt} files but can't save to {fmt}. JPG, PNG or PDF work everywhere. Which one would you like?",
+        "hi": "KonPDF {fmt} फ़ाइलें खोल सकता है पर {fmt} में सेव नहीं कर सकता। JPG, PNG या PDF हर जगह चलते हैं। कौन सा चाहिए?",
+        "hi-Latn": "KonPDF {fmt} files khol sakta hai par {fmt} mein save nahi kar sakta. JPG, PNG ya PDF har jagah chalte hain. Kaunsa chahiye?",
+        "es": "KonPDF abre archivos {fmt} pero no guarda en {fmt}. JPG, PNG o PDF funcionan en todas partes. ¿Cuál prefieres?",
+        "fr": "KonPDF ouvre les fichiers {fmt} mais ne peut pas enregistrer en {fmt}. JPG, PNG ou PDF marchent partout. Lequel voulez-vous ?",
+        "de": "KonPDF öffnet {fmt}-Dateien, kann aber nicht als {fmt} speichern. JPG, PNG oder PDF gehen überall. Was möchtest du?",
+        "pt": "O KonPDF abre arquivos {fmt}, mas não salva em {fmt}. JPG, PNG ou PDF funcionam em todo lugar. Qual você quer?",
+    },
+    "ask_more_files": {
+        "en": "Merging needs two or more files. Attach the other PDFs or images with the + button and ask again.",
+        "hi": "जोड़ने के लिए दो या ज़्यादा फ़ाइलें चाहिए। + बटन से बाकी PDF या इमेज जोड़िए और फिर कहिए।",
+        "hi-Latn": "Jodne ke liye do ya zyada files chahiye. + button se baaki PDFs ya images attach karo aur phir bolo.",
+        "es": "Para unir hacen falta dos o más archivos. Adjunta los otros PDF o imágenes con el botón + y vuelve a pedirlo.",
+        "fr": "Pour fusionner, il faut au moins deux fichiers. Ajoutez les autres PDF ou images avec le bouton + puis redemandez.",
+        "de": "Zum Zusammenfügen braucht es zwei oder mehr Dateien. Hänge die anderen PDFs oder Bilder mit + an und frag nochmal.",
+        "pt": "Para juntar são precisos dois ou mais arquivos. Anexe os outros PDFs ou imagens com o botão + e peça de novo.",
+    },
     "ask_pages": {
         "en": "Which pages? Write them like “pages 1-3, 7”.",
         "hi": "कौन से पेज? ऐसे लिखिए: “pages 1-3, 7”।",
@@ -539,6 +703,78 @@ T: dict[str, dict[str, str]] = {
         "fr": "Quelles pages ? Écrivez « pages 1-3, 7 ».",
         "de": "Welche Seiten? Schreib „Seiten 1-3, 7“.",
         "pt": "Quais páginas? Escreva “páginas 1-3, 7”.",
+    },
+    "background": {
+        "en": "KonPDF can't remove backgrounds yet. I can crop the photo, make it black & white, brighten it, or put it on a page as a PDF.",
+        "hi": "KonPDF अभी बैकग्राउंड नहीं हटा सकता। मैं फ़ोटो काट सकता हूँ, ब्लैक एंड व्हाइट या साफ़ कर सकता हूँ, या उसे PDF बना सकता हूँ।",
+        "hi-Latn": "KonPDF abhi background nahi hata sakta. Main photo crop kar sakta hoon, black & white ya saaf kar sakta hoon, ya PDF bana sakta hoon.",
+        "es": "KonPDF aún no quita fondos. Puedo recortar la foto, pasarla a blanco y negro, aclararla o ponerla en un PDF.",
+        "fr": "KonPDF ne sait pas encore enlever un arrière-plan. Je peux recadrer la photo, la passer en noir et blanc, l’éclaircir ou en faire un PDF.",
+        "de": "KonPDF kann noch keine Hintergründe entfernen. Ich kann das Foto zuschneiden, schwarz-weiß machen, aufhellen oder als PDF speichern.",
+        "pt": "O KonPDF ainda não remove fundos. Posso cortar a foto, deixá-la em preto e branco, clareá-la ou colocá-la num PDF.",
+    },
+    "confirm": {
+        "en": "Ready! Tap Run on the plan and I'll do it.",
+        "hi": "तैयार! प्लान पर Run दबाइए, मैं कर दूँगा।",
+        "hi-Latn": "Ready! Plan pe Run dabao, main kar dunga.",
+        "es": "¡Listo! Toca Run en el plan y lo hago.",
+        "fr": "C’est prêt ! Touchez Run sur le plan et je m’en occupe.",
+        "de": "Fertig! Tippe beim Plan auf Run, dann lege ich los.",
+        "pt": "Pronto! Toque em Run no plano e eu faço.",
+    },
+    "already_format": {
+        "en": "{name} is already a {fmt} file, so there's nothing to convert. Want it smaller, resized, or in another format?",
+        "hi": "{name} पहले से ही {fmt} फ़ाइल है, बदलने को कुछ नहीं। इसे छोटा, रीसाइज़ या किसी और फ़ॉर्मैट में करें?",
+        "hi-Latn": "{name} pehle se hi {fmt} file hai, badalne ko kuch nahi. Ise chhota, resize ya kisi aur format mein karein?",
+        "es": "{name} ya es un archivo {fmt}, no hay nada que convertir. ¿Lo quieres más pequeño, redimensionado o en otro formato?",
+        "fr": "{name} est déjà un fichier {fmt}, rien à convertir. Plus petit, redimensionné ou dans un autre format ?",
+        "de": "{name} ist schon eine {fmt}-Datei, da gibt es nichts umzuwandeln. Kleiner, andere Größe oder ein anderes Format?",
+        "pt": "{name} já é um arquivo {fmt}, não há o que converter. Quer menor, redimensionado ou em outro formato?",
+    },
+    "already_small": {
+        "en": "Good news: {name} is already {size}, so it's under your limit.",
+        "hi": "अच्छी बात: {name} पहले से ही {size} है, यानी आपकी सीमा से कम।",
+        "hi-Latn": "Achhi baat: {name} pehle se hi {size} hai, yaani aapki limit se kam.",
+        "es": "Buena noticia: {name} ya ocupa {size}, por debajo de tu límite.",
+        "fr": "Bonne nouvelle : {name} fait déjà {size}, sous votre limite.",
+        "de": "Gute Nachricht: {name} hat schon {size}, also unter deinem Limit.",
+        "pt": "Boa notícia: {name} já tem {size}, abaixo do seu limite.",
+    },
+    "unknown_image": {
+        "en": "I'm not sure what you'd like to do with {name}. I can make it smaller (to any KB), resize it, make it passport size, clean it up, rotate or crop it, or turn it into a PDF. Tap an idea below or say it your way.",
+        "hi": "{name} के साथ आप क्या करना चाहते हैं, मैं समझ नहीं पाया। मैं इसे छोटा (किसी भी KB तक), रीसाइज़, पासपोर्ट साइज़, साफ़, घुमा या काट सकता हूँ, या PDF बना सकता हूँ। नीचे कोई सुझाव चुनिए या अपने शब्दों में बताइए।",
+        "hi-Latn": "{name} ke saath kya karna hai, main samajh nahi paaya. Main ise chhota (kisi bhi KB tak), resize, passport size, saaf, rotate ya crop kar sakta hoon, ya PDF bana sakta hoon. Neeche koi idea chuno ya apne shabdon mein batao.",
+        "es": "No estoy seguro de qué quieres hacer con {name}. Puedo reducirla (a los KB que quieras), redimensionarla, dejarla tamaño pasaporte, mejorarla, girarla, recortarla o pasarla a PDF. Toca una idea o dímelo a tu manera.",
+        "fr": "Je ne suis pas sûr de ce que vous voulez faire avec {name}. Je peux la réduire (à n’importe quel Ko), la redimensionner, au format passeport, l’améliorer, la pivoter, la recadrer ou en faire un PDF. Touchez une idée ou dites-le à votre façon.",
+        "de": "Ich bin nicht sicher, was du mit {name} machen möchtest. Ich kann es verkleinern (auf beliebige KB), die Größe ändern, Passfoto-Format, verbessern, drehen, zuschneiden oder ein PDF daraus machen. Tippe auf eine Idee oder sag es mit deinen Worten.",
+        "pt": "Não tenho certeza do que você quer fazer com {name}. Posso reduzir (para quantos KB quiser), redimensionar, deixar tamanho passaporte, melhorar, girar, cortar ou transformar em PDF. Toque numa ideia ou diga do seu jeito.",
+    },
+    "unknown_pdf": {
+        "en": "I'm not sure what you'd like to do with {name}. I can compress it (to any size), turn it into Word or images, merge or split it, keep or delete pages, rotate it, add a password, a watermark or page numbers. Tap an idea below or say it your way.",
+        "hi": "{name} के साथ आप क्या करना चाहते हैं, मैं समझ नहीं पाया। मैं इसे छोटा, Word या इमेज, जोड़/बाँट, पेज रख/हटा, घुमा, या पासवर्ड, वॉटरमार्क और पेज नंबर लगा सकता हूँ। नीचे कोई सुझाव चुनिए या अपने शब्दों में बताइए।",
+        "hi-Latn": "{name} ke saath kya karna hai, main samajh nahi paaya. Main ise chhota, Word ya images mein, jod/baant, pages rakh/hata, rotate, ya password, watermark aur page numbers laga sakta hoon. Neeche koi idea chuno ya apne shabdon mein batao.",
+        "es": "No estoy seguro de qué quieres hacer con {name}. Puedo comprimirlo, pasarlo a Word o imágenes, unirlo o dividirlo, conservar o borrar páginas, girarlo, ponerle contraseña, marca de agua o números de página. Toca una idea o dímelo a tu manera.",
+        "fr": "Je ne suis pas sûr de ce que vous voulez faire avec {name}. Je peux le compresser, le convertir en Word ou en images, le fusionner ou le diviser, garder ou supprimer des pages, le pivoter, ajouter un mot de passe, un filigrane ou des numéros. Touchez une idée ou dites-le à votre façon.",
+        "de": "Ich bin nicht sicher, was du mit {name} machen möchtest. Ich kann es komprimieren, in Word oder Bilder umwandeln, zusammenfügen oder teilen, Seiten behalten oder löschen, drehen, Passwort, Wasserzeichen oder Seitenzahlen hinzufügen. Tippe auf eine Idee oder sag es mit deinen Worten.",
+        "pt": "Não tenho certeza do que você quer fazer com {name}. Posso comprimir, converter para Word ou imagens, juntar ou dividir, manter ou excluir páginas, girar, colocar senha, marca d'água ou números de página. Toque numa ideia ou diga do seu jeito.",
+    },
+    "unknown_document": {
+        "en": "I'm not sure what you'd like to do with {name}. I can turn it into a PDF, plain text, Markdown, a web page or pictures, or copy its tables into Excel. Tap an idea below or say it your way.",
+        "hi": "{name} के साथ आप क्या करना चाहते हैं, मैं समझ नहीं पाया। मैं इसे PDF, टेक्स्ट, Markdown, वेब पेज या तस्वीरों में बदल सकता हूँ, या इसकी टेबल Excel में डाल सकता हूँ।",
+        "hi-Latn": "{name} ke saath kya karna hai, main samajh nahi paaya. Main ise PDF, text, Markdown, web page ya photos mein badal sakta hoon, ya iski tables Excel mein daal sakta hoon.",
+        "es": "No estoy seguro de qué quieres hacer con {name}. Puedo pasarlo a PDF, texto, Markdown, página web o imágenes, o copiar sus tablas a Excel.",
+        "fr": "Je ne suis pas sûr de ce que vous voulez faire avec {name}. Je peux le convertir en PDF, texte, Markdown, page web ou images, ou copier ses tableaux dans Excel.",
+        "de": "Ich bin nicht sicher, was du mit {name} machen möchtest. Ich kann es in PDF, Text, Markdown, eine Webseite oder Bilder umwandeln oder seine Tabellen nach Excel kopieren.",
+        "pt": "Não tenho certeza do que você quer fazer com {name}. Posso convertê-lo em PDF, texto, Markdown, página web ou imagens, ou copiar as tabelas para o Excel.",
+    },
+    "unknown_sheet": {
+        "en": "I'm not sure what you'd like to do with {name}. I can turn it into Excel, CSV, JSON, a PDF table or a Word table. Tap an idea below or say it your way.",
+        "hi": "{name} के साथ आप क्या करना चाहते हैं, मैं समझ नहीं पाया। मैं इसे Excel, CSV, JSON, PDF टेबल या Word टेबल में बदल सकता हूँ।",
+        "hi-Latn": "{name} ke saath kya karna hai, main samajh nahi paaya. Main ise Excel, CSV, JSON, PDF table ya Word table mein badal sakta hoon.",
+        "es": "No estoy seguro de qué quieres hacer con {name}. Puedo pasarlo a Excel, CSV, JSON, una tabla en PDF o en Word.",
+        "fr": "Je ne suis pas sûr de ce que vous voulez faire avec {name}. Je peux le convertir en Excel, CSV, JSON, tableau PDF ou Word.",
+        "de": "Ich bin nicht sicher, was du mit {name} machen möchtest. Ich kann es in Excel, CSV, JSON, eine PDF- oder Word-Tabelle umwandeln.",
+        "pt": "Não tenho certeza do que você quer fazer com {name}. Posso convertê-lo em Excel, CSV, JSON, tabela em PDF ou Word.",
     },
     "explain_more": {
         "en": "Here's what happened: {title}. {why} What to try: {hint}",
@@ -573,6 +809,9 @@ STEP_TEXT: dict[str, dict[str, str]] = {
     "protect": {"en": "add a password", "hi": "पासवर्ड लगाना", "hi-Latn": "password lagana", "es": "poner contraseña", "fr": "ajouter un mot de passe", "de": "Passwort setzen", "pt": "colocar senha"},
     "unlock": {"en": "remove the password", "hi": "पासवर्ड हटाना", "hi-Latn": "password hatana", "es": "quitar la contraseña", "fr": "retirer le mot de passe", "de": "Passwort entfernen", "pt": "remover a senha"},
     "watermark": {"en": "add the watermark “{text}”", "hi": "“{text}” वॉटरमार्क लगाना", "hi-Latn": "“{text}” watermark lagana", "es": "añadir la marca de agua “{text}”", "fr": "ajouter le filigrane « {text} »", "de": "Wasserzeichen „{text}“ hinzufügen", "pt": "adicionar a marca d'água “{text}”"},
+    "img_rotate": {"en": "rotate the picture {angle}°", "hi": "तस्वीर {angle}° घुमाना", "hi-Latn": "photo {angle}° ghumana", "es": "girar la imagen {angle}°", "fr": "pivoter l’image de {angle}°", "de": "das Bild um {angle}° drehen", "pt": "girar a imagem {angle}°"},
+    "img_flip": {"en": "flip it", "hi": "उल्टा (मिरर) करना", "hi-Latn": "mirror karna", "es": "voltearla", "fr": "la retourner", "de": "spiegeln", "pt": "espelhar"},
+    "img_crop": {"en": "crop to {ratio}", "hi": "{ratio} में काटना", "hi-Latn": "{ratio} mein crop karna", "es": "recortar a {ratio}", "fr": "recadrer en {ratio}", "de": "auf {ratio} zuschneiden", "pt": "cortar em {ratio}"},
     "page_numbers": {"en": "add page numbers", "hi": "पेज नंबर डालना", "hi-Latn": "page numbers daalna", "es": "numerar las páginas", "fr": "numéroter les pages", "de": "Seitenzahlen hinzufügen", "pt": "numerar as páginas"},
 }  # fmt: skip
 
@@ -610,7 +849,7 @@ ENHANCE_LABEL = {
 
 SUGGEST: dict[str, dict[str, list[str]]] = {
     "image": {
-        "en": ["Make it under 100 KB", "Convert to PDF", "Passport photo", "Enhance it"],
+        "en": ["Make it under 100 KB", "Convert to PDF", "Passport photo", "Enhance it", "Rotate it", "Crop to square"],
         "hi": ["100 KB से कम करो", "PDF बना दो", "पासपोर्ट फ़ोटो", "साफ़ करो"],
         "hi-Latn": ["100 KB se kam karo", "PDF bana do", "Passport photo", "Enhance karo"],
         "es": ["Menos de 100 KB", "Convertir a PDF", "Foto de pasaporte", "Mejorarla"],
@@ -626,6 +865,24 @@ SUGGEST: dict[str, dict[str, list[str]]] = {
         "fr": ["Compresser à 1 Mo", "Convertir en Word", "Numéroter les pages", "Séparer les pages"],
         "de": ["Auf 1 MB komprimieren", "In Word umwandeln", "Seitenzahlen", "Seiten teilen"],
         "pt": ["Comprimir para 1 MB", "Converter para Word", "Numerar páginas", "Separar páginas"],
+    },
+    "document": {
+        "en": ["Convert to PDF", "Convert to text", "Tables to Excel"],
+        "hi": ["PDF बना दो", "टेक्स्ट में बदलो", "टेबल Excel में"],
+        "hi-Latn": ["PDF bana do", "Text mein badlo", "Tables Excel mein"],
+        "es": ["Convertir a PDF", "Convertir a texto", "Tablas a Excel"],
+        "fr": ["Convertir en PDF", "Convertir en texte", "Tableaux vers Excel"],
+        "de": ["In PDF umwandeln", "In Text umwandeln", "Tabellen nach Excel"],
+        "pt": ["Converter para PDF", "Converter para texto", "Tabelas para Excel"],
+    },
+    "sheet": {
+        "en": ["Convert to PDF", "Convert to CSV", "Convert to Excel"],
+        "hi": ["PDF बना दो", "CSV में बदलो", "Excel में बदलो"],
+        "hi-Latn": ["PDF bana do", "CSV mein badlo", "Excel mein badlo"],
+        "es": ["Convertir a PDF", "Convertir a CSV", "Convertir a Excel"],
+        "fr": ["Convertir en PDF", "Convertir en CSV", "Convertir en Excel"],
+        "de": ["In PDF umwandeln", "In CSV umwandeln", "In Excel umwandeln"],
+        "pt": ["Converter para PDF", "Converter para CSV", "Converter para Excel"],
     },
     "other": {
         "en": ["Convert to PDF", "What can you do?", "Are my files private?"],
@@ -742,6 +999,12 @@ def _step_phrase(step: dict[str, Any], lang: str) -> str:
         return s("convert", to=str(p.get("to", "")).upper().replace("DOCX", "Word").replace("XLSX", "Excel"))
     if tool == "resize":
         parts = []
+        if p.get("crop"):
+            parts.append(s("img_crop", ratio=p["crop"]))
+        if p.get("rotate"):
+            parts.append(s("img_rotate", angle={270: "−90"}.get(p["rotate"], p["rotate"])))
+        if p.get("flip"):
+            parts.append(s("img_flip"))
         if p.get("preset"):
             parts.append(s("resize_preset", preset=PRESET_LABEL.get(p["preset"], p["preset"])))
         elif p.get("mode") == "pixels":
@@ -795,6 +1058,12 @@ def _fmt_num(value: Any) -> str:
 # Planning
 # --------------------------------------------------------------------------
 
+def _ext(file: dict[str, Any]) -> str:
+    name = str(file.get("name", "")).lower()
+    ext = name.rsplit(".", 1)[-1] if "." in name else ""
+    return {"jpeg": "jpg", "jfif": "jpg", "tif": "tiff", "heif": "heic", "htm": "html"}.get(ext, ext)
+
+
 def _context_kind(files: list[dict[str, Any]], facts: Facts) -> str:
     """What the person is working with: 'image', 'pdf', 'document', 'sheet' or 'unknown'."""
     kinds = set()
@@ -825,9 +1094,9 @@ def _context_kind(files: list[dict[str, Any]], facts: Facts) -> str:
             return "sheet"
         if first in DOC_FMTS | SLIDE_FMTS:
             return "document"
-    if facts.preset or facts.width or facts.print_size or facts.filters or facts.low_light or facts.upscale:
+    if facts.preset or facts.width or facts.print_size or facts.filters or facts.low_light or facts.upscale or facts.crop or facts.flip:
         return "image"
-    if facts.actions & {"merge", "split", "rotate", "extract", "delete", "protect", "unlock", "watermark", "page_numbers"}:
+    if facts.actions & {"merge", "split", "extract", "delete", "protect", "unlock", "watermark", "page_numbers"}:
         return "pdf"
     return "unknown"
 
@@ -835,7 +1104,8 @@ def _context_kind(files: list[dict[str, Any]], facts: Facts) -> str:
 @dataclass
 class Plan:
     steps: list[dict[str, Any]] = field(default_factory=list)
-    missing: str | None = None  # "password" | "target" | "pages"
+    missing: str | None = None  # "password" | "target" | "pages" | "cant_output" | "more_files"
+    detail: str = ""
 
     def add(self, tool: str, **params: Any) -> None:
         self.steps.append({"tool": tool, "params": {k: v for k, v in params.items() if v is not None}})
@@ -854,11 +1124,20 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
             target = others[-1]
     if target == "doc":
         target = "docx"
-    if target == "pptx" or target in ("svg", "heic", "odt", "ods"):
-        target = None if target != "pptx" else None
+    # Formats KonPDF reads but can't write.
+    if target in ("svg", "heic", "pptx", "ppt", "odt", "ods", "xls"):
+        plan.missing, plan.detail = "cant_output", target.upper()
+        return plan
+    # Merging needs two or more files.
+    if "merge" in facts.actions and len(files) == 1 and _context_kind(files, facts) == "pdf":
+        plan.missing = "more_files"
+        return plan
 
-    image_side = kind in ("image", "unknown") and not (a & {"merge", "split", "extract", "delete", "rotate", "protect", "unlock", "watermark", "page_numbers"})
-    wants_pdf_ops = bool(a & {"merge", "split", "extract", "delete", "rotate", "protect", "unlock", "watermark", "page_numbers"})
+    pdf_only = {"merge", "split", "extract", "delete", "protect", "unlock", "watermark", "page_numbers"}
+    # Rotating is a PDF job for PDFs (or when pages are named), an image job otherwise.
+    rotate_pdf = "rotate" in a and (kind in ("pdf", "mixed", "document") or (kind == "unknown" and facts.pages is not None))
+    image_side = kind in ("image", "unknown") and not (a & pdf_only) and not rotate_pdf
+    wants_pdf_ops = bool(a & pdf_only) or rotate_pdf
     size_given = facts.max_kb is not None or facts.min_kb is not None
 
     # 1. Enhance (images, before any resizing)
@@ -909,6 +1188,16 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
             params.update(mode="filesize", strip_metadata=True)
         elif facts.strip:
             params["strip_metadata"] = True
+        # Rotate / flip / crop the picture itself.
+        turns = {
+            "rotate": (facts.angle or 90) if "rotate" in a else None,
+            "flip": facts.flip if "flip" in a or facts.flip else None,
+            "crop": facts.crop if "crop" in a or (facts.crop and not params) else None,
+        }
+        turns = {k: v for k, v in turns.items() if v}
+        if turns:
+            params.setdefault("mode", "transform")
+            params.update(turns)
         if target in IMAGE_OUT and params:
             params["format"] = target
             target = None if not size_given else None
@@ -944,7 +1233,7 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
             if not facts.pages:
                 plan.missing = "pages"
             plan.add("delete", pages=facts.pages)
-        if "rotate" in a:
+        if rotate_pdf:
             plan.add("rotate", angle=facts.angle or 90, pages=facts.pages)
         if "unlock" in a:
             if not facts.password:
@@ -965,6 +1254,95 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
     if not plan.steps and "convert" in a and not target:
         plan.missing = "target"
     return plan
+
+
+# --------------------------------------------------------------------------
+# Conversation: follow-ups, confirmations, notes
+# --------------------------------------------------------------------------
+
+CONFIRM = {
+    "yes", "y", "yeah", "yep", "ok", "okay", "ok do it", "okay do it", "sure", "do it", "go", "go ahead", "run", "run it",
+    "yes please", "please do", "proceed", "haan", "han", "ha", "haa", "theek hai", "thik hai", "kar do", "karo", "chalo",
+    "हाँ", "हां", "ठीक है", "करो", "sí", "si", "vale", "dale", "oui", "d'accord", "vas-y", "ja", "klar", "mach", "los",
+    "sim", "pode", "claro", "beleza",
+}  # fmt: skip
+# Questions that want information, not a file job ("how does...", "what is...").
+INFO_STARTS = (
+    "how", "why", "what", "which", "where", "when", "is it", "is my", "are ", "does", "do you", "who", "kya", "kaise", "kyun",
+    "kyon", "क्या", "कैसे", "क्यों", "cómo", "qué", "por qué", "dónde", "comment", "pourquoi", "quoi", "qu'est", "est-ce",
+    "wie", "was", "warum", "wo ", "como", "o que", "por que", "onde",
+)  # fmt: skip
+REFINE_STARTS = (
+    "also", "and ", "then", "now", "instead", "but ", "plus", "too", "same", "actually", "no,", "no ", "not ", "aur", "bhi", "phir",
+    "ab ", "nahi", "और", "भी", "फिर", "también", "y ", "luego", "ahora", "mejor", "aussi", "et ", "puis", "maintenant", "plutôt",
+    "auch", "und ", "dann", "jetzt", "lieber", "também", "e ", "depois", "agora",
+)  # fmt: skip
+REFINE_WORDS = ("instead", "as well", " too", "bhi", "भी", "también", "aussi", "auch", "também", "en vez", "au lieu", "stattdessen", "em vez")
+
+
+def is_refinement(text: str, facts: Facts) -> bool:
+    """Does this message build on the one before ("also under 100 kb", "png instead", "password: 1234")?"""
+    if text.startswith(REFINE_STARTS) or any(w in text for w in REFINE_WORDS):
+        return True
+    has_detail = any(
+        (facts.max_kb, facts.min_kb, facts.width, facts.height, facts.print_size, facts.percent, facts.pages, facts.password, facts.preset, facts.target, facts.crop)
+    )
+    # Only details, no job of its own: "under 50 kb", "pages 2-3", "password: abcd", "png".
+    return has_detail and not facts.actions and len(text.split()) <= 6
+
+
+def merge_facts(base: Facts, new: Facts) -> Facts:
+    """`base` updated with everything `new` says; new details win, jobs add up."""
+    merged = Facts(**{k: getattr(base, k) for k in base.__dataclass_fields__})
+    for name in merged.__dataclass_fields__:
+        value = getattr(new, name)
+        if name == "actions":
+            merged.actions = set(base.actions) | set(new.actions)
+        elif name == "formats":
+            merged.formats = list(new.formats) + [f for f in base.formats if f not in new.formats]
+        elif name == "filters":
+            merged.filters = list(new.filters) or list(base.filters)
+        elif value not in (None, False, "", [], set()):
+            setattr(merged, name, value)
+    # A format named in a follow-up is the new target ("make it png instead").
+    if not new.target and new.formats:
+        merged.target = new.formats[0]
+    # A new target replaces the old one: drop the old format so it isn't picked again.
+    if merged.target and base.target and merged.target != base.target:
+        merged.formats = [f for f in merged.formats if f != base.target]
+    return merged
+
+
+def _conversation_facts(user_messages: list[str]) -> Facts:
+    """Facts of the latest request, including the follow-ups that refined it."""
+    chain: list[str] = []
+    for text in reversed(user_messages[-6:]):
+        chain.insert(0, text)
+        normalized = correct_typos(_norm(text))
+        if normalized.strip(" .!") in CONFIRM:
+            continue
+        if not is_refinement(normalized, extract(text)):
+            break
+    facts = Facts()
+    for text in chain:
+        if correct_typos(_norm(text)).strip(" .!") in CONFIRM:
+            continue
+        facts = merge_facts(facts, extract(text))
+    return facts
+
+
+def _size_note(plan: Plan, files: list[dict[str, Any]], lang: str) -> str | None:
+    """'It's already 80 KB' when a file is already under the size asked for."""
+    if len(plan.steps) != 1 or len(files) != 1:
+        return None
+    step = plan.steps[0]
+    limit = step["params"].get("max_kb") if step["tool"] == "resize" else step["params"].get("target_kb") if step["tool"] == "compress_pdf" else None
+    if not limit or step["params"].get("mode") not in (None, "filesize"):
+        return None
+    size = int(files[0].get("size") or 0)
+    if 0 < size <= float(limit) * 1024:
+        return _t("already_small", lang, name=files[0].get("name", ""), size=_size(size / 1024, lang))
+    return None
 
 
 # --------------------------------------------------------------------------
@@ -1025,7 +1403,7 @@ class NW:
         return "core+llm" if self.llm else "core"
 
     def _suggestions(self, kind: str, lang: str) -> list[str]:
-        group = "image" if kind == "image" else "pdf" if kind == "pdf" else "other"
+        group = kind if kind in ("image", "pdf", "document", "sheet") else "other"
         return SUGGEST[group].get(lang) or SUGGEST[group]["en"]
 
     def _answer(self, lang: str, reply: str, plan: dict[str, Any] | None, kind: str, engine: str = "core") -> dict[str, Any]:
@@ -1039,39 +1417,42 @@ class NW:
         history: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         files = files or []
+        history = history or []
         message = (message or "").strip()
         lang = detect_language(message, lang_hint) if message else (lang_hint if lang_hint in LANGS else "en")
-        text = _norm(message)
-        facts = extract(message)
-        kind = _context_kind(files, facts)
+        text = correct_typos(_norm(message))
+        earlier = [h.get("text", "") for h in history if h.get("role") == "user" and h.get("text")]
 
         if not message or (_has(text, GREETINGS) and len(text.split()) <= 3):
-            return self._answer(lang, _t("greet", lang), None, kind)
+            return self._answer(lang, _t("greet", lang), None, _context_kind(files, Facts()))
+        # "yes", "ok do it", "haan": confirm the request before.
+        if earlier and text.strip(" .!") in CONFIRM:
+            plan_reply = self._plan_reply(_conversation_facts(earlier), files, lang)
+            if plan_reply:
+                plan_reply["reply"] = _t("confirm", lang)
+                return plan_reply
         if _has(text, THANKS) and len(text.split()) <= 5:
-            return self._answer(lang, _t("thanks", lang), None, kind)
+            return self._answer(lang, _t("thanks", lang), None, _context_kind(files, Facts()))
         for topic, words in OUT_OF_SCOPE.items():
             if _has(text, words):
-                return self._answer(lang, _t(topic, lang), None, kind)
+                return self._answer(lang, _t(topic, lang), None, _context_kind(files, Facts()))
 
-        # Follow-ups: "password: abc" after NW asked for one.
-        if history and facts.password and not facts.actions:
-            previous = next((h.get("text", "") for h in reversed(history) if h.get("role") == "user"), "")
-            if previous:
-                facts = extract(previous + " " + message)
+        facts = extract(message)
+        # Follow-ups build on what was asked before: "also make it under 100 kb",
+        # "make it png instead", "password: abcd" after NW asked for one.
+        if earlier and is_refinement(text, facts):
+            facts = merge_facts(_conversation_facts(earlier), facts)
+        kind = _context_kind(files, facts)
 
-        plan = build_plan(facts, files)
-        is_question = text.endswith("?") or text.startswith(QUESTION_STARTS)
-        if plan.steps and not (is_question and not (facts.max_kb or facts.target or facts.preset)):
-            if plan.missing:
-                return self._answer(lang, _t(f"ask_{plan.missing}", lang), None, kind)
-            summary = THEN.get(lang, ", ").join(_step_phrase(s, lang) for s in plan.steps)
-            summary = summary[0].upper() + summary[1:]
-            reply = _t("plan", lang, summary=summary)
-            if not files:
-                reply += " " + _t("need_files", lang)
-            return self._answer(lang, reply, {"steps": plan.steps, "summary": summary}, kind)
-        if plan.missing:
-            return self._answer(lang, _t(f"ask_{plan.missing}", lang), None, kind)
+        informational = text.startswith(INFO_STARTS)
+        if informational:
+            for keywords, answer in FAQ:
+                if _has(text, keywords):
+                    return self._answer(lang, answer.get(lang) or answer["en"], None, kind)
+
+        plan_reply = self._plan_reply(facts, files, lang)
+        if plan_reply:
+            return plan_reply
 
         for keywords, answer in FAQ:
             if _has(text, keywords):
@@ -1081,7 +1462,33 @@ class NW:
             llm_answer = self._ask_llm(message, lang, files)
             if llm_answer:
                 return self._answer(lang, llm_answer[0], llm_answer[1], kind, "llm")
+        if files and kind in ("image", "pdf", "document", "sheet"):
+            name = files[0].get("name") if len(files) == 1 else f"{len(files)} files"
+            return self._answer(lang, _t(f"unknown_{kind}", lang, name=name), None, kind)
         return self._answer(lang, _t("unknown", lang), None, kind)
+
+    def _plan_reply(self, facts: Facts, files: list[dict[str, Any]], lang: str) -> dict[str, Any] | None:
+        """A plan answer for `facts`, a question for a missing detail, or None if there's nothing to do."""
+        kind = _context_kind(files, facts)
+        plan = build_plan(facts, files)
+        if plan.missing:
+            return self._answer(lang, _t(f"ask_{plan.missing}", lang, fmt=plan.detail), None, kind)
+        if not plan.steps:
+            return None
+        # "Convert to JPG" for a JPG: say so instead of offering a job that can't run.
+        exts = {_ext(f) for f in files}
+        if len(plan.steps) == 1 and plan.steps[0]["tool"] == "convert" and exts == {plan.steps[0]["params"].get("to")}:
+            name = files[0].get("name") if len(files) == 1 else f"{len(files)} files"
+            return self._answer(lang, _t("already_format", lang, name=name, fmt=str(plan.steps[0]["params"]["to"]).upper()), None, kind)
+        summary =THEN.get(lang, ", ").join(_step_phrase(s, lang) for s in plan.steps)
+        summary = summary[0].upper() + summary[1:]
+        reply = _t("plan", lang, summary=summary)
+        note = _size_note(plan, files, lang)
+        if note:
+            reply += " " + note
+        if not files:
+            reply += " " + _t("need_files", lang)
+        return self._answer(lang, reply, {"steps": plan.steps, "summary": summary}, kind)
 
     def _ask_llm(self, message: str, lang: str, files: list[dict[str, Any]]):
         try:

@@ -10,7 +10,7 @@ The full spec, architecture and build plan are in **[detail.md](detail.md)**.
 
 ## Test the APK
 
-Download **KonPDF v0.0.1** from the [Releases page](https://github.com/Gauravtiwari31/KonPDF/releases/tag/v0.0.1) (also at [apk/KonPDF.apk](apk/KonPDF.apk)). It runs on ARM Android phones, Android 7.0 and newer.
+The newest test build is **[apk/KonPDF.apk](apk/KonPDF.apk)** (0.0.2); published releases are on the [Releases page](https://github.com/Gauravtiwari31/KonPDF/releases). It runs on ARM Android phones, Android 7.0 and newer.
 
 1. Deploy the engine on Render once: **[docs/deploy-render.md](docs/deploy-render.md)** (about 15 minutes, free).
 2. Install the APK on your phone (allow installing from this source when Android asks). If an older KonPDF test build is installed, uninstall it first.
@@ -33,7 +33,7 @@ The app then works on Wi-Fi or mobile data. For local testing you can still poin
 │   │   ├── pipeline.py  runs single tools and NW's multi-step plans (whitelisted)
 │   │   ├── converters/  images · pdf · documents · sheets · office (LibreOffice)
 │   │   └── tools/       resize · enhance · pdf_tools
-│   ├── tests/           567 tests
+│   ├── tests/           730 tests
 │   └── Dockerfile       Python + LibreOffice + Noto fonts
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module

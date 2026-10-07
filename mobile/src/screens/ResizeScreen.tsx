@@ -25,6 +25,9 @@ type Mode = 'filesize' | 'pixels' | 'percent' | 'print' | 'preset';
 type Fit = 'fit' | 'fill' | 'stretch';
 type Unit = 'cm' | 'mm' | 'in';
 type OutFormat = 'keep' | 'jpg' | 'png' | 'webp';
+type Turn = '0' | '90' | '180' | '270';
+type Flip = 'none' | 'horizontal' | 'vertical';
+type Crop = 'none' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16';
 
 const MODES: ChipOption<Mode>[] = [
   { value: 'filesize', label: 'File size (KB)' },
@@ -42,6 +45,25 @@ const UNITS: ChipOption<Unit>[] = [
   { value: 'cm', label: 'cm' },
   { value: 'mm', label: 'mm' },
   { value: 'in', label: 'inch' },
+];
+const TURNS: ChipOption<Turn>[] = [
+  { value: '0', label: 'No turn' },
+  { value: '90', label: '90° right' },
+  { value: '180', label: '180°' },
+  { value: '270', label: '90° left' },
+];
+const FLIPS: ChipOption<Flip>[] = [
+  { value: 'none', label: 'No flip' },
+  { value: 'horizontal', label: 'Mirror' },
+  { value: 'vertical', label: 'Upside down' },
+];
+const CROPS: ChipOption<Crop>[] = [
+  { value: 'none', label: 'No crop' },
+  { value: '1:1', label: 'Square' },
+  { value: '4:3', label: '4:3' },
+  { value: '3:4', label: '3:4' },
+  { value: '16:9', label: '16:9' },
+  { value: '9:16', label: '9:16' },
 ];
 const FORMATS: ChipOption<OutFormat>[] = [
   { value: 'keep', label: 'Same as now' },
@@ -73,6 +95,9 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
   const [preset, setPreset] = useState('passport');
   const [format, setFormat] = useState<OutFormat>('keep');
   const [strip, setStrip] = useState(true);
+  const [turn, setTurn] = useState<Turn>('0');
+  const [flip, setFlip] = useState<Flip>('none');
+  const [crop, setCrop] = useState<Crop>('none');
   const job = useJob();
 
   const options = (): Record<string, unknown> | null => {
@@ -80,6 +105,9 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
       format: format === 'keep' ? undefined : format,
       quality,
       strip_metadata: strip,
+      rotate: turn === '0' ? undefined : Number(turn),
+      flip: flip === 'none' ? undefined : flip,
+      crop: crop === 'none' ? undefined : crop,
     };
     switch (mode) {
       case 'filesize':
@@ -97,7 +125,12 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
           ? {
               ...common,
               mode,
-              print: { width: num(printW), height: num(printH), unit, dpi: num(dpi) ?? 300 },
+              print: {
+                width: num(printW),
+                height: num(printH),
+                unit,
+                dpi: num(dpi) ?? 300,
+              },
               fit,
             }
           : null;
@@ -165,8 +198,8 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
           ) : null}
           {mode === 'filesize' ? (
             <AppText variant="caption" color="textMuted" style={styles.hint}>
-              Some forms reject files that are too small, so you can set both.
-              1 MB = 1024 KB.
+              Some forms reject files that are too small, so you can set both. 1
+              MB = 1024 KB.
             </AppText>
           ) : null}
 
@@ -207,7 +240,12 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
               />
               <View style={[styles.quick, styles.hint]}>
                 {['25', '50', '75', '150', '200'].map(p => (
-                  <Chip key={p} label={`${p} %`} selected={percent === p} onPress={() => setPercent(p)} />
+                  <Chip
+                    key={p}
+                    label={`${p} %`}
+                    selected={percent === p}
+                    onPress={() => setPercent(p)}
+                  />
                 ))}
               </View>
             </>
@@ -275,6 +313,17 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
         </View>
 
         <View style={styles.section}>
+          <SectionLabel>Turn and crop</SectionLabel>
+          <ChipRow options={TURNS} value={turn} onChange={setTurn} />
+          <View style={styles.hint}>
+            <ChipRow options={FLIPS} value={flip} onChange={setFlip} />
+          </View>
+          <View style={styles.hint}>
+            <ChipRow options={CROPS} value={crop} onChange={setCrop} />
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <SectionLabel>Save as</SectionLabel>
           <ChipRow options={FORMATS} value={format} onChange={setFormat} />
         </View>
@@ -292,7 +341,9 @@ export function ResizeScreen({ navigation, route }: ScreenProps<'Resize'>) {
           <ErrorCard
             error={job.error}
             style={styles.section}
-            onAskNw={() => navigation.navigate('Nw', { errorCode: job.error!.code })}
+            onAskNw={() =>
+              navigation.navigate('Nw', { errorCode: job.error!.code })
+            }
           />
         ) : null}
 

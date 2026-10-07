@@ -237,3 +237,33 @@ def test_damaged_pdf_is_reported_kindly(samples, workdirs):
     with pytest.raises(KonError) as e:
         pdf_tools.TOOLS["rotate"](identify([samples["fake_pdf"]]), {"angle": 90}, out_dir, work, Notes())
     assert e.value.code == "CORRUPT_FILE"
+
+
+@pytest.mark.parametrize(
+    "options,size",
+    [
+        ({"mode": "transform", "rotate": 90}, (1200, 1600)),
+        ({"mode": "transform", "rotate": 180}, (1600, 1200)),
+        ({"mode": "transform", "crop": "1:1"}, (1200, 1200)),
+        ({"mode": "transform", "crop": "9:16"}, (675, 1200)),
+        ({"mode": "transform", "crop": "1:1", "rotate": 270, "flip": "horizontal"}, (1200, 1200)),
+        ({"mode": "percent", "percent": 50, "rotate": 90}, (600, 800)),
+    ],
+)
+def test_rotate_flip_crop(samples, workdirs, options, size):
+    path, _ = run_resize(samples, workdirs, **options)
+    with Image.open(path) as img:
+        assert img.size == size
+
+
+def test_flip_mirrors_pixels(samples, workdirs):
+    path, _ = run_resize(samples, workdirs, "png", mode="transform", flip="horizontal")
+    with Image.open(samples["png"]) as original, Image.open(path) as flipped:
+        assert original.getpixel((60, 150)) == flipped.getpixel((original.width - 61, 150))
+
+
+@pytest.mark.parametrize("options", [{"mode": "transform", "rotate": 45}, {"mode": "transform", "crop": "5:7"}, {"mode": "transform", "flip": "sideways"}])
+def test_bad_transform_options(samples, workdirs, options):
+    with pytest.raises(KonError) as e:
+        run_resize(samples, workdirs, **options)
+    assert e.value.code == "INVALID_OPTIONS"

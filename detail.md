@@ -114,7 +114,7 @@ Images can be resized in every way people usually need, especially for online fo
 | Screens and print | HD 1280 × 720, Full HD 1920 × 1080, 4K 3840 × 2160, A4 at 300 DPI |
 | Email | "Small for email" (longest side 1280, under 500 KB) |
 
-**Also in the resizer:** crop (free, 1:1, 4:3, 3:2, 16:9, 9:16, 3:4), rotate (90° steps), flip, pad to a canvas, and *strip metadata* (removes location and camera info).
+**Also in the resizer:** crop to an aspect ratio (1:1, 4:3, 3:4, 16:9, 9:16), rotate (90° steps), flip (mirror or upside down), pad to a canvas, and *strip metadata* (removes location and camera info).
 
 PDFs get a matching **compress to target size** tool ([section 5](#5-pdf-tools)).
 
@@ -185,6 +185,17 @@ The enhance screen shows a fast low-resolution **live preview** and a **before/a
 - Understanding is multilingual: format names, sizes ("50kb", "५० केबी", "1 MB"), dimensions ("1080x1080", "1080 by 1080"), percentages, page ranges and actions ("compress", "chhota karo", "छोटा करो", "comprimir", "compresser", "verkleinern") are recognised in all of them.
 - The app's language setting can force a language; otherwise NW follows the user.
 - Simple words, short sentences, no jargon ("file is too big" rather than "payload exceeds limit").
+
+### How NW understands people
+
+- **Typos:** misspelled keywords are corrected before matching ("compres", "pfd", "pasport", "resise").
+- **Follow-ups:** "also make it under 100 kb", "make it png instead", "now convert to pdf", "pages 2-3" or "password: abcd" build on the request before; "yes", "ok do it" or "haan" confirm it.
+- **Polite and casual requests:** "can you make this a pdf?", "i need this as a png", "pls convert to jpg" are requests, not questions. Real how-to questions ("are my files private?") still get answers.
+- **Natural pages and passwords:** "first page", "last page", "first 3 pages", "get rid of page 2", "password laga do 1234", "lock it with 98765".
+- **Knows the files:** a plan always fits what's attached (rotate is a photo job for photos and a PDF job for PDFs); attaching files after asking re-plans for them; "it's already 80 KB" when a file is already under the limit; "it's already a JPG" when there's nothing to convert; "merging needs two or more files".
+- **Honest limits:** background removal, video, audio and OCR are declined kindly with what it can do instead; formats it can read but not write (HEIC, SVG, PPTX) get a suggestion.
+- **Never a dead end:** if a request is unclear, NW says what it can do with the attached file and offers matching suggestion buttons.
+- **Tested on real phrasing:** about 130 everyday requests in all seven languages (with typos and Hinglish) are turned into plans and run on real files in the test suite (`engine/tests/test_nw_conversations.py`).
 
 ### How NW runs (`engine/model.py`)
 
@@ -481,7 +492,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 5 | **Friendly errors in the app:** engine errors shown as they come, app-only problems (offline, server waking, no app to open a file) in all 7 languages, "Ask NW" on every error card | Done |
 | 6 | **Engine:** format detection, converters (images, PDF, documents, sheets, LibreOffice bridge), resizer, enhance, PDF tools, plan runner, friendly error catalogue in 7 languages, Dockerfile | Done |
 | 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) + optional local-LLM tier | Done (LLM tier not tried yet: needs a model file) |
-| 8 | **Tests:** engine 567 (pytest); mobile 19 (Jest) + type-check + lint | Done |
+| 8 | **Tests:** engine 730 (pytest); mobile 19 (Jest) + type-check + lint | Done |
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
@@ -503,7 +514,7 @@ cd engine
 python -m venv .venv
 .venv/Scripts/pip install -r requirements-dev.txt        # macOS/Linux: .venv/bin/pip
 .venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-.venv/Scripts/python -m pytest                            # 567 tests
+.venv/Scripts/python -m pytest                            # 730 tests
 
 # Android app (Node 22, JDK 17, Android SDK)
 cd mobile

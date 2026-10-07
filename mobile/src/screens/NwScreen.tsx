@@ -104,14 +104,14 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
   }, []);
 
   const ask = useCallback(
-    async (text: string, history: Message[]) => {
+    async (text: string, history: Message[], files: LocalFile[] = attached) => {
       setThinking(true);
       setError(null);
       try {
         addReply(
           await engine.nwChat({
             message: text,
-            files: attached.map(f => ({
+            files: files.map(f => ({
               name: f.name,
               mime: f.mime,
               size: f.size,
@@ -161,7 +161,14 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
     try {
       const more = await fileService.pick(['*/*'], true);
       if (more.length) {
-        setAttached(a => [...a, ...more]);
+        const next = [...attached, ...more];
+        setAttached(next);
+        // Asked before attaching? Plan that request again for these files,
+        // so the plan fits them (a PDF job for a PDF, a photo job for a photo).
+        const last = [...messages].reverse().find(m => m.role === 'user');
+        if (last && !thinking) {
+          ask(last.text, messages.slice(0, messages.indexOf(last)), next);
+        }
       }
     } catch (e) {
       setError(toFriendlyError(e, lang));
