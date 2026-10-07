@@ -14,6 +14,7 @@ import {
   TextField,
 } from '../components/ui';
 import { phaseLabel, useJob } from '../hooks/useJob';
+import { useKeyboardHeight } from '../hooks/useKeyboardHeight';
 import { useLang } from '../hooks/useLang';
 import type { ScreenProps } from '../navigation/types';
 import { files as fileService, LocalFile } from '../services/files';
@@ -57,7 +58,9 @@ function describeParams(params: Record<string, unknown>): string {
       if (k === 'to') {
         return `to ${String(v).toUpperCase()}`;
       }
-      return typeof v === 'object' ? JSON.stringify(v) : `${k.replace(/_/g, ' ')} ${v}`;
+      return typeof v === 'object'
+        ? JSON.stringify(v)
+        : `${k.replace(/_/g, ' ')} ${v}`;
     })
     .join(' · ');
 }
@@ -69,13 +72,23 @@ const id = () => `m${++nextId}`;
 export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
   const t = useTheme();
   const lang = useLang();
-  const [attached, setAttached] = useState<LocalFile[]>(route.params?.files ?? []);
+  const [attached, setAttached] = useState<LocalFile[]>(
+    route.params?.files ?? [],
+  );
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState(route.params?.prompt ?? '');
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<FriendlyError | null>(null);
   const job = useJob();
   const list = useRef<FlatList<Message>>(null);
+  const keyboardHeight = useKeyboardHeight();
+
+  // The keyboard shrinks the chat; keep the latest message in view.
+  useEffect(() => {
+    if (keyboardHeight > 0) {
+      list.current?.scrollToEnd({ animated: true });
+    }
+  }, [keyboardHeight]);
 
   const addReply = useCallback((reply: NwReply) => {
     setMessages(m => [
@@ -98,8 +111,14 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         addReply(
           await engine.nwChat({
             message: text,
-            files: attached.map(f => ({ name: f.name, mime: f.mime, size: f.size })),
-            history: history.slice(-8).map(m => ({ role: m.role, text: m.text })),
+            files: attached.map(f => ({
+              name: f.name,
+              mime: f.mime,
+              size: f.size,
+            })),
+            history: history
+              .slice(-8)
+              .map(m => ({ role: m.role, text: m.text })),
           }),
         );
       } catch (e) {
@@ -152,7 +171,13 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
   const runPlan = (plan: NwPlan) => {
     const first = plan.steps[plan.steps.length - 1]?.tool;
     const family =
-      first === 'resize' ? 'resize' : first === 'enhance' ? 'enhance' : first === 'convert' ? 'image' : 'pdf';
+      first === 'resize'
+        ? 'resize'
+        : first === 'enhance'
+        ? 'enhance'
+        : first === 'convert'
+        ? 'image'
+        : 'pdf';
     job.run(attached, { title: plan.summary, family }, progress =>
       engine.run(attached, plan, progress),
     );
@@ -160,12 +185,22 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
 
   const renderMessage = ({ item }: { item: Message }) =>
     item.role === 'user' ? (
-      <View style={[styles.bubble, styles.mine, { backgroundColor: t.colors.inverse }]}>
+      <View
+        style={[
+          styles.bubble,
+          styles.mine,
+          { backgroundColor: t.colors.inverse },
+        ]}
+      >
         <AppText color={t.colors.onInverse}>{item.text}</AppText>
       </View>
     ) : (
       <View style={styles.theirsWrap}>
-        <BrutalBox offset={3} color={familyColors.nw} contentStyle={styles.bubble}>
+        <BrutalBox
+          offset={3}
+          color={familyColors.nw}
+          contentStyle={styles.bubble}
+        >
           <AppText color={palette.ink}>{item.text}</AppText>
         </BrutalBox>
         {item.plan ? (
@@ -179,7 +214,9 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
                   <AppText variant="label">{i + 1}</AppText>
                 </View>
                 <View style={styles.flex}>
-                  <AppText variant="bodyStrong">{TOOL_LABELS[step.tool] ?? step.tool}</AppText>
+                  <AppText variant="bodyStrong">
+                    {TOOL_LABELS[step.tool] ?? step.tool}
+                  </AppText>
                   {Object.keys(step.params).length ? (
                     <AppText variant="mono" color="textMuted">
                       {describeParams(step.params)}
@@ -190,14 +227,26 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
             ))}
             {attached.length ? (
               <Button
-                title={job.busy ? phaseLabel(job.phase, job.progress) : `Run on ${attached.length} file${attached.length > 1 ? 's' : ''}`}
+                title={
+                  job.busy
+                    ? phaseLabel(job.phase, job.progress)
+                    : `Run on ${attached.length} file${
+                        attached.length > 1 ? 's' : ''
+                      }`
+                }
                 icon="bolt"
                 size="md"
                 onPress={() => runPlan(item.plan!)}
                 disabled={job.busy}
               />
             ) : (
-              <Button title="Attach files to run" icon="upload" size="md" variant="outline" onPress={attach} />
+              <Button
+                title="Attach files to run"
+                icon="upload"
+                size="md"
+                variant="outline"
+                onPress={attach}
+              />
             )}
           </BrutalBox>
         ) : null}
@@ -214,7 +263,11 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
   return (
     <Screen>
       <View style={styles.header}>
-        <IconButton icon="x" label="Close" onPress={() => navigation.goBack()} />
+        <IconButton
+          icon="x"
+          label="Close"
+          onPress={() => navigation.goBack()}
+        />
         <View style={styles.flex}>
           <AppText variant="heading">NW</AppText>
           <AppText variant="label" uppercase color="textMuted">
@@ -229,7 +282,9 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         keyExtractor={m => m.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messages}
-        onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={() =>
+          list.current?.scrollToEnd({ animated: true })
+        }
         ListFooterComponent={
           <View style={styles.footer}>
             {thinking ? (
@@ -237,7 +292,16 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
                 NW is thinking…
               </AppText>
             ) : null}
-            {error ? <ErrorCard error={error} onRetry={() => send(messages.filter(m => m.role === 'user').pop()?.text ?? '')} /> : null}
+            {error ? (
+              <ErrorCard
+                error={error}
+                onRetry={() =>
+                  send(
+                    messages.filter(m => m.role === 'user').pop()?.text ?? '',
+                  )
+                }
+              />
+            ) : null}
             {job.error ? (
               <ErrorCard
                 error={job.error}

@@ -10,13 +10,13 @@ The full spec, architecture and build plan are in **[detail.md](detail.md)**.
 
 ## Test the APK
 
-A test build is in **[apk/KonPDF.apk](apk/KonPDF.apk)** (version 0.1.0, for ARM phones). It is not a release.
+Download **KonPDF v0.0.1** from the [Releases page](https://github.com/Gauravtiwari31/KonPDF/releases/tag/v0.0.1) (also at [apk/KonPDF.apk](apk/KonPDF.apk)). It runs on ARM Android phones, Android 7.0 and newer.
 
-1. Start the engine on your computer (see [Run it](#run-it)) with `--host 0.0.0.0` so the phone can reach it.
-2. Install `KonPDF.apk` on the phone (allow installing from this source when Android asks).
-3. In KonPDF, open **Settings → Converter engine** and enter your computer's Wi-Fi address, for example `192.168.1.20:8000`, then tap **Test** and **Save**. The phone and the computer must be on the same Wi-Fi.
+1. Deploy the engine on Render once: **[docs/deploy-render.md](docs/deploy-render.md)** (about 15 minutes, free).
+2. Install the APK on your phone (allow installing from this source when Android asks). If an older KonPDF test build is installed, uninstall it first.
+3. In KonPDF, open **Settings → Converter engine**, enter your Render address (for example `https://konpdf-engine.onrender.com`), tap **Test**, then **Save**.
 
-With the phone on USB, `adb reverse tcp:8000 tcp:8000` and the address `localhost:8000` work too.
+The app then works on Wi-Fi or mobile data. For local testing you can still point it at your computer instead (see [Run it](#run-it)).
 
 ## Repository layout
 

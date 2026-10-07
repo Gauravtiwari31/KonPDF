@@ -1,0 +1,26 @@
+# Render Blueprint for the KonPDF engine (Docker web service, free plan).
+# Render → New → Blueprint → pick this repository. Details: docs/deploy-render.md
+services:
+  - type: web
+    name: konpdf-engine
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./engine/Dockerfile
+    dockerContext: ./engine
+    healthCheckPath: /api/health
+    autoDeploy: true
+    # Only engine changes redeploy it; app-only commits don't.
+    buildFilter:
+      paths:
+        - engine/**
+    envVars:
+      # The free instance has 512 MB of memory: one conversion at a time.
+      - key: KON_MAX_PARALLEL
+        value: "1"
+      - key: KON_MAX_FILE_MB
+        value: "50"
+      - key: KON_JOB_TTL_MIN
+        value: "30"
+      - key: KON_RATE_LIMIT
+        value: "120"

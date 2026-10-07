@@ -1,7 +1,6 @@
 import React, { PropsWithChildren, useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Keyboard,
   Modal,
   Pressable,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardHeight } from '../../hooks/useKeyboardHeight';
 import { useTheme } from '../../theme';
 import { AppText } from './AppText';
 import { IconButton } from './Button';
@@ -17,26 +17,6 @@ interface SheetProps {
   visible: boolean;
   onClose: () => void;
   title: string;
-}
-
-/**
- * Height of the on-screen keyboard while it is open, otherwise 0. A sheet is
- * an edge-to-edge window that Android doesn't resize for the keyboard, so the
- * panel has to make room for it itself.
- */
-function useKeyboardHeight() {
-  const [height, setHeight] = useState(0);
-  useEffect(() => {
-    const shown = Keyboard.addListener('keyboardDidShow', e =>
-      setHeight(e.endCoordinates.height),
-    );
-    const hidden = Keyboard.addListener('keyboardDidHide', () => setHeight(0));
-    return () => {
-      shown.remove();
-      hidden.remove();
-    };
-  }, []);
-  return height;
 }
 
 /** Bottom sheet: dimmed backdrop + panel that slides up from the bottom edge. */

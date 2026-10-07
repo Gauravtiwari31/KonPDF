@@ -485,7 +485,8 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
-| 12 | Hosting the engine (Render + Docker) and the first APK release | Next |
+| 12 | Hosting the engine on Render: `render.yaml` blueprint + [step-by-step guide](docs/deploy-render.md) | Ready to deploy |
+| 12a | **v0.0.1** test release on GitHub with the APK; gear icon for Settings; text boxes stay above the keyboard | Done |
 | 13 | Translating the app's own screen text (NW and errors are already multilingual) | Planned |
 | 14 | iOS | Later |
 
