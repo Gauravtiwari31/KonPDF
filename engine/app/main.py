@@ -30,7 +30,7 @@ from .formats import KINDS, MIME, ext_of, matrix, office_available
 from .i18n import from_accept_language, normalize
 
 log = logging.getLogger("konpdf")
-nw = NW(model_path=settings.nw_model_path)
+nw = NW.from_settings(settings.nw_llm_url, settings.nw_llm_key, settings.nw_llm_model, settings.nw_llm_timeout)
 _jobs = asyncio.Semaphore(settings.max_parallel_jobs)
 
 

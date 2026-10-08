@@ -204,7 +204,7 @@ No API keys and no external AI service. NW has two tiers, both inside `model.py`
 | Tier | When | How |
 |---|---|---|
 | **Core (always on)** | Every request | A fast, deterministic intent engine: language detection by script and keyword scoring, a multilingual lexicon of actions/formats/units, regex extractors for sizes, dimensions, percentages and page ranges, and a small knowledge base for how-to answers. Runs in milliseconds on any machine, needs no download. |
-| **Local LLM (optional)** | If a small GGUF model is present (e.g. Qwen2.5-0.5B/1.5B-Instruct) and `llama-cpp-python` is installed | Used for free-form questions the core can't answer and to rephrase replies more naturally. Its output is **always validated**: plans must match the tool whitelist and parameter schemas, or NW falls back to the core answer. |
+| **Language model (optional)** | When `NW_LLM_URL`, `NW_LLM_MODEL` and `NW_LLM_KEY` are set on the engine (any OpenAI-compatible chat API: Groq, Google Gemini, OpenRouter, Ollama, llama.cpp server). See [docs/nw-language-model.md](docs/nw-language-model.md). | Answers first, with the conversation and file names/types/sizes (never contents). Its plan must pass the tool whitelist **and fit the attached files**; anything invalid, slow (over 12 s) or failing falls back to the core tier. The key stays on the server. |
 
 Plans are never run without the user tapping **Run**, and NW can only call KonPDF's own tools. It cannot reach the network or the file system.
 
@@ -311,7 +311,7 @@ Same foundation as DoAll, so the UI kit carries over unchanged.
 | PDF | PyMuPDF (render, edit, compress, tables, AES-256 passwords) |
 | Documents | python-docx, Markdown, PyMuPDF's HTML layout engine (PDF output without LibreOffice), LibreOffice headless (optional, full fidelity) |
 | Sheets | openpyxl, pandas (xlrd for XLS, odfpy for ODS) |
-| Assistant | `engine/model.py` (core intent engine) + optional `llama-cpp-python` with a local GGUF model |
+| Assistant | `engine/model.py`: core intent engine + optional OpenAI-compatible language model (standard library HTTP, no extra packages) |
 | Tests | pytest + FastAPI TestClient |
 | Deploy | Docker image (Python + LibreOffice), Render free plan or any container host |
 
@@ -351,7 +351,7 @@ flowchart LR
 
 ```
 engine/
-├── model.py                 NW assistant (core intent engine + optional local LLM)
+├── model.py                 NW assistant (core intent engine + optional language model)
 ├── app/
 │   ├── main.py              FastAPI app, routes, error handlers
 │   ├── config.py            limits and settings from environment variables
@@ -396,7 +396,7 @@ Every response is either `{ "ok": true, ... }` or the friendly error shape from 
 | `KON_JOB_TTL_MIN` | 30 |
 | `KON_JOB_TIMEOUT_S` | 120 |
 | `KON_SOFFICE` | path to LibreOffice, auto-detected |
-| `NW_MODEL_PATH` | path to an optional GGUF model |
+| `NW_LLM_URL`, `NW_LLM_MODEL`, `NW_LLM_KEY` | optional language model for NW |
 
 ---
 
@@ -491,8 +491,8 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 4 | **Android screens:** Welcome, Home, Convert, Resize, Enhance, PDF tools, NW chat, Result, History, Settings | Done |
 | 5 | **Friendly errors in the app:** engine errors shown as they come, app-only problems (offline, server waking, no app to open a file) in all 7 languages, "Ask NW" on every error card | Done |
 | 6 | **Engine:** format detection, converters (images, PDF, documents, sheets, LibreOffice bridge), resizer, enhance, PDF tools, plan runner, friendly error catalogue in 7 languages, Dockerfile | Done |
-| 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) + optional local-LLM tier | Done (LLM tier not tried yet: needs a model file) |
-| 8 | **Tests:** engine 730 (pytest); mobile 19 (Jest) + type-check + lint | Done |
+| 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) + optional language-model tier (any OpenAI-compatible API) | Done (tested against a fake API server; needs your key to go live) |
+| 8 | **Tests:** engine 752 (pytest); mobile 19 (Jest) + type-check + lint | Done |
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
@@ -514,7 +514,7 @@ cd engine
 python -m venv .venv
 .venv/Scripts/pip install -r requirements-dev.txt        # macOS/Linux: .venv/bin/pip
 .venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-.venv/Scripts/python -m pytest                            # 730 tests
+.venv/Scripts/python -m pytest                            # 752 tests
 
 # Android app (Node 22, JDK 17, Android SDK)
 cd mobile
@@ -533,5 +533,5 @@ On a real phone, open **Settings → Converter engine** and enter your computer'
 - **No OCR:** PDF → DOCX copies existing text. Text inside scanned images stays an image.
 - **Pure-Python fallback:** without LibreOffice, DOCX → PDF and sheet → PDF use KonPDF's own layout (PyMuPDF's HTML engine). It keeps text, headings, lists, tables and images, but not every Word detail. The hosted engine includes LibreOffice.
 - **App screen text** is English for now. NW's replies and every error message are already in all 7 languages.
-- **NW core tier:** deterministic and fast, but limited to KonPDF's tools and knowledge base. The optional local LLM tier adds free-form chat, at the cost of RAM (about 1 GB for a 0.5B model).
+- **NW core tier:** not a trained AI model; a hand-built language engine, deterministic and fast, but limited to the phrasing it knows. The optional language-model tier understands free-form requests; it needs an API key for a hosted model (free tiers exist), or about 2 GB of memory for a model you run yourself.
 - **Free hosting cold starts:** handled as in DoAll: the app pings `/api/health` on launch and shows "Waking up the converter" instead of an error.

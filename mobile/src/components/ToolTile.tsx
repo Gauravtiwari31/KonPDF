@@ -18,6 +18,7 @@ export function ToolTile({
     <BrutalPressable
       onPress={onPress}
       color={familyColors[tool.family]}
+      stretch
       accessibilityLabel={`${tool.title}. ${tool.subtitle}`}
       testID={`tool-${tool.id}`}
       style={style}

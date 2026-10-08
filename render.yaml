@@ -24,3 +24,12 @@ services:
         value: "30"
       - key: KON_RATE_LIMIT
         value: "120"
+      # NW's language model (optional): see docs/nw-language-model.md.
+      # Left empty here so no key ever lands in the repository; enter them in
+      # Render → konpdf-engine → Environment. Without them NW uses its core tier.
+      - key: NW_LLM_URL
+        sync: false
+      - key: NW_LLM_MODEL
+        sync: false
+      - key: NW_LLM_KEY
+        sync: false

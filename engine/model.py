@@ -1,4 +1,4 @@
-"""NW: KonPDF's built-in assistant. No API keys, no outside AI service.
+"""NW: KonPDF's built-in assistant. Works with no API key; can use a language model you set up.
 
 NW turns plain-language requests ("make this photo under 50 KB",
 "isko PDF bana do", "comprime este PDF a 1 MB") into a plan of KonPDF tool
@@ -11,11 +11,11 @@ Two tiers, both in this file:
   multilingual lexicon of actions, formats and units, regex extractors for
   sizes, dimensions, percentages, angles and page ranges, and a small
   knowledge base. Deterministic and fast; needs no download.
-* Local LLM (optional): if `NW_MODEL_PATH` points to a small instruction
-  model in GGUF format (e.g. Qwen2.5-0.5B/1.5B-Instruct) and
-  `llama-cpp-python` is installed, it answers free-form questions the core
-  can't. Its plans must pass the same validation as everything else, or NW
-  falls back to the core answer.
+* Language model (optional): any OpenAI-compatible chat API (Groq, Google
+  Gemini, OpenRouter, or your own Ollama / llama.cpp server), set up with
+  NW_LLM_URL, NW_LLM_KEY and NW_LLM_MODEL on the engine. It answers first;
+  its plans must pass the same whitelist and fit the attached files, or the
+  core tier answers instead. It never sees file contents.
 
 Languages: English (en), Hindi (hi), Hinglish (hi-Latn), Spanish (es),
 French (fr), German (de), Portuguese (pt).
@@ -1346,42 +1346,185 @@ def _size_note(plan: Plan, files: list[dict[str, Any]], lang: str) -> str | None
 
 
 # --------------------------------------------------------------------------
-# Optional local LLM tier
+# Language-model tier (optional): any OpenAI-compatible chat API
 # --------------------------------------------------------------------------
+#
+# Set three environment variables on the engine (never in the app):
+#   NW_LLM_URL    base URL, e.g. https://api.groq.com/openai/v1
+#                 (also Google Gemini's OpenAI endpoint, OpenRouter, or your
+#                 own Ollama / llama.cpp server)
+#   NW_LLM_KEY    the service's API key
+#   NW_LLM_MODEL  the model name the service uses
+# The model only sees the conversation and file names, types and sizes, never
+# file contents. Its plan must pass the same checks as everything else; if
+# the service fails, is slow, or answers nonsense, the core tier answers.
 
-SYSTEM_PROMPT = """You are NW, the assistant inside KonPDF, an app that converts images, PDFs, documents and spreadsheets.
-KonPDF cannot do video, audio or OCR. Answer in the user's language ({lang}), in one to three short, friendly sentences.
-If the user wants a file action, also return a plan using only these tools:
-convert{{to}}, resize{{mode,preset,width,height,percent,max_kb,min_kb,format}}, enhance{{preset,filter}},
-compress_pdf{{level,target_kb}}, merge, split{{mode,ranges}}, rotate{{angle,pages}}, extract{{pages}}, delete{{pages}},
-protect{{password}}, unlock{{password}}, watermark{{text}}, page_numbers.
-Reply ONLY with JSON: {{"reply": "...", "plan": {{"steps": [{{"tool": "...", "params": {{}}}}]}} or null}}"""
+LLM_SYSTEM_PROMPT = """You are NW, the assistant inside KonPDF, an Android app that converts and edits files on its own server.
+KonPDF works with images (jpg, png, webp, heic, avif, gif, bmp, tiff, ico, svg), PDFs, documents (docx, txt, md, html; doc/odt/rtf/pptx when LibreOffice is installed) and spreadsheets (xlsx, xls, ods, csv, tsv, json).
+KonPDF does NOT do: video, audio, OCR (reading text out of pictures), background removal, AI image generation, translation, or editing the text inside a document. Say so kindly and offer what it can do instead.
+
+Your job: understand what the person wants done to the attached files and turn it into a plan of KonPDF tool steps. Steps run in order; each step's output files are the next step's input.
+
+TOOLS (use only these names and parameters):
+- convert {"to": one of jpg png webp bmp gif tiff ico avif pdf docx txt md html xlsx csv tsv json, optional "quality": 1-100, "page_size": "a4"|"letter"|"fit", "combine": true|false, "dpi": 72-600, "pages": "1-3,7"}
+    images -> another image format, pdf (several images become ONE pdf unless combine=false), or docx
+    pdf -> jpg/png/webp/tiff (one image per page), docx, txt, md, html, xlsx/csv (tables only)
+    docx/txt/md/html -> pdf, docx, txt, md, html, jpg, png, xlsx/csv (tables)
+    sheets -> xlsx, csv, tsv, json, html, md, pdf, docx
+- resize (images only) {"mode": "filesize"|"pixels"|"percent"|"longest"|"print"|"preset"|"compress"|"transform",
+    "max_kb", "min_kb", "width", "height", "fit": "fit"|"fill"|"contain"|"stretch", "percent", "longest",
+    "print": {"width", "height", "unit": "cm"|"mm"|"in", "dpi"}, "preset": one of passport us_visa india_form_photo signature id_scan
+    instagram_square instagram_portrait instagram_story whatsapp_dp youtube_thumb linkedin_banner x_header hd full_hd uhd_4k a4_300dpi email,
+    "format": jpg|png|webp, "rotate": 90|180|270 (clockwise), "flip": "horizontal"|"vertical", "crop": "1:1"|"4:3"|"3:4"|"16:9"|"9:16", "strip_metadata": true}
+    "make it under 50 KB" -> mode filesize, max_kb 50. "1 MB" = 1024 KB. "compress"/"smaller" with no size -> mode compress.
+- enhance (images only) {"preset": auto|document|bw_document|low_light|portrait|denoise|upscale_2x, "filter": grayscale|sepia|vintage|vivid|cool|warm|fade|noir|invert|blur,
+    "adjust": {"brightness"|"contrast"|"saturation"|"sharpness"|"warmth": -100..100}}
+- compress_pdf (pdfs) {"target_kb"} or {"level": "low"|"medium"|"strong"}
+- merge (2+ pdfs and/or images -> one pdf) {}
+- split (pdf) {"mode": "each"} | {"mode": "every", "every": N} | {"mode": "ranges", "ranges": "1-3,4-6"}
+- extract (pdf, keep pages) {"pages": "1-3,7"}; delete (pdf) {"pages": "2"}; reorder (pdf) {"order": "3,1,2"}
+- rotate (pdf pages) {"angle": 90|180|270, "pages": optional}
+- protect (pdf) {"password"}; unlock (pdf) {"password"}
+- watermark (pdf) {"text", "style": "diagonal"|"center"|"bottom", "opacity": 0.05-0.9}
+- page_numbers (pdf) {"position": "bottom-center"|"bottom-right"|"top-right", "style": "n"|"page_n_of_total"}
+Pages are 1-based; "last" means the last page.
+
+RULES
+- Reply in the person's language: {lang} (hi = Hindi in Devanagari, hi-Latn = Hinglish in Latin letters).
+- "reply": one or two short, warm, plain sentences. Say what you will do. No jargon, no error codes.
+- If something needed is missing (a password, which pages, which format), set "plan" to null and ask for it in "reply".
+- If no files are attached yet, still give the plan and tell them to attach the file with the + button.
+- Never invent tools or parameters. Never claim you already did it: the person taps Run.
+- Use earlier messages: "also...", "instead", "yes", "that one" refer to the conversation so far.
+- "suggestions": up to 4 very short next requests in the person's language, fitting the files.
+
+Answer with ONLY a JSON object, no other text:
+{"reply": "...", "plan": {"steps": [{"tool": "...", "params": {...}}]} or null, "suggestions": ["...", "..."]}
+
+EXAMPLES
+Files: photo.jpg (image, 2400 KB). Person: "passport photo under 50kb"
+{"reply": "Sure! I'll make it passport size and keep it under 50 KB.", "plan": {"steps": [{"tool": "resize", "params": {"mode": "preset", "preset": "passport", "max_kb": 50}}]}, "suggestions": ["Make it a PDF", "Black and white"]}
+Files: a.jpg, b.jpg (images). Person: "isko ek pdf bana do"
+{"reply": "Ho jayega! Dono photos ko ek PDF mein jod deta hoon.", "plan": {"steps": [{"tool": "convert", "params": {"to": "pdf"}}]}, "suggestions": ["PDF ko chhota karo", "Page numbers daalo"]}
+Files: report.pdf (pdf, 8000 KB). Person: "too big for email, also lock it"
+{"reply": "I'll shrink it for email. Which password should I use to lock it?", "plan": null, "suggestions": ["Password: ..."]}
+Files: scan.jpg (image). Person: "can you read the text in this?"
+{"reply": "KonPDF can't read text from pictures, but I can clean up the scan so it's easier to read, or turn it into a PDF.", "plan": null, "suggestions": ["Clean up the scan", "Make it a PDF"]}
+"""
+
+IMAGE_TOOLS = {"resize", "enhance"}
+PDF_TOOLS = {"compress_pdf", "split", "extract", "delete", "reorder", "rotate", "protect", "unlock", "watermark", "page_numbers"}
 
 
-class LocalLLM:
-    """A small GGUF model through llama-cpp-python, if both are available."""
+def _kind_of_ext(ext: str) -> str:
+    if ext in IMAGE_FMTS:
+        return "image"
+    if ext == "pdf":
+        return "pdf"
+    if ext in SHEET_FMTS:
+        return "sheet"
+    if ext in DOC_FMTS or ext in SLIDE_FMTS:
+        return "document"
+    return "unknown"
 
-    def __init__(self, path: str) -> None:
-        from llama_cpp import Llama  # type: ignore[import-not-found]
 
-        self.llm = Llama(model_path=path, n_ctx=2048, n_threads=4, verbose=False)
+def plan_fits_files(steps: list[dict[str, Any]], files: list[dict[str, Any]]) -> bool:
+    """Would these steps run on these files? (Simulates how each step changes the file types.)"""
+    if not files:
+        return True
+    from app.formats import matrix
 
-    def ask(self, message: str, lang: str, files: list[dict[str, Any]]) -> dict[str, Any] | None:
-        names = ", ".join(f"{f.get('name')} ({f.get('size', 0) // 1024} KB)" for f in files[:10]) or "none"
-        out = self.llm.create_chat_completion(
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT.format(lang=lang)},
-                {"role": "user", "content": f"Attached files: {names}\n\n{message}"},
-            ],
-            temperature=0.2,
-            max_tokens=300,
-            response_format={"type": "json_object"},
-        )
+    table = matrix()
+    exts = [_ext(f) for f in files]
+    count = len(files)
+    for step in steps:
+        tool, params = step["tool"], step["params"]
+        kinds = {_kind_of_ext(e) for e in exts}
+        if tool in IMAGE_TOOLS:
+            if kinds != {"image"}:
+                return False
+            fmt = params.get("format")
+            exts = [fmt or e for e in exts] if tool == "resize" else exts
+        elif tool == "merge":
+            if count < 2 or not kinds <= {"pdf", "image"}:
+                return False
+            exts, count = ["pdf"], 1
+        elif tool in PDF_TOOLS:
+            if kinds != {"pdf"}:
+                return False
+        elif tool == "convert":
+            target = str(params.get("to") or "")
+            if any(target not in table.get(e, []) for e in exts):
+                return False
+            if kinds == {"image"} and target in ("pdf", "docx") and params.get("combine", True):
+                count = 1
+            exts = [target] * count
+    return True
+
+
+def _json_object(text: str) -> dict[str, Any] | None:
+    """The first JSON object in a model's answer (models sometimes wrap it in ``` fences)."""
+    start, depth = text.find("{"), 0
+    if start < 0:
+        return None
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    value = json.loads(text[start : i + 1])
+                except ValueError:
+                    return None
+                return value if isinstance(value, dict) else None
+    return None
+
+
+class RemoteLLM:
+    """A chat model behind an OpenAI-compatible API (Groq, Gemini, OpenRouter, Ollama, llama.cpp server...)."""
+
+    def __init__(self, url: str, key: str | None, model: str, timeout: float = 12.0) -> None:
+        self.url = url.rstrip("/") + "/chat/completions"
+        self.key = key
+        self.model = model
+        self.timeout = timeout
+
+    def ask(self, message: str, lang: str, files: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any] | None:
+        import urllib.request
+
+        attached = "\n".join(
+            f"- {f.get('name')} ({_kind_of_ext(_ext(f))}, {max(1, int(f.get('size') or 0) // 1024)} KB)" for f in files[:20]
+        ) or "(none yet)"
+        messages: list[dict[str, str]] = [{"role": "system", "content": LLM_SYSTEM_PROMPT.replace("{lang}", lang)}]
+        for turn in history[-8:]:
+            text = str(turn.get("text", ""))[:800]
+            if text:
+                messages.append({"role": "user" if turn.get("role") == "user" else "assistant", "content": text})
+        messages.append({"role": "user", "content": f"Files attached:\n{attached}\n\nPerson: {message}"})
+        import urllib.error
+
+        headers = {"Content-Type": "application/json", "User-Agent": "KonPDF-engine"}
+        if self.key:
+            headers["Authorization"] = f"Bearer {self.key}"
+        payload: dict[str, Any] = {"model": self.model, "messages": messages, "temperature": 0.1, "max_tokens": 500, "response_format": {"type": "json_object"}}
+
+        def call() -> dict[str, Any]:
+            request = urllib.request.Request(self.url, data=json.dumps(payload).encode(), headers=headers, method="POST")
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+
         try:
-            data = json.loads(out["choices"][0]["message"]["content"])
-        except (KeyError, IndexError, ValueError, TypeError):
-            return None
-        return data if isinstance(data, dict) and isinstance(data.get("reply"), str) else None
+            data = call()
+        except urllib.error.HTTPError as e:
+            # Some models don't take "JSON mode"; the prompt asks for JSON anyway.
+            if e.code != 400:
+                raise
+            payload.pop("response_format")
+            data = call()
+        content = data["choices"][0]["message"]["content"]
+        answer = _json_object(content or "")
+        return answer if answer and isinstance(answer.get("reply"), str) and answer["reply"].strip() else None
 
 
 # --------------------------------------------------------------------------
@@ -1390,13 +1533,13 @@ class LocalLLM:
 
 
 class NW:
-    def __init__(self, model_path: str | None = None) -> None:
-        self.llm: LocalLLM | None = None
-        if model_path:
-            try:
-                self.llm = LocalLLM(model_path)
-            except Exception:  # noqa: BLE001 - no model or no llama_cpp: the core tier still works
-                self.llm = None
+    def __init__(self, llm: RemoteLLM | None = None) -> None:
+        self.llm = llm
+        self.last_llm_error: str | None = None
+
+    @classmethod
+    def from_settings(cls, url: str | None, key: str | None, model: str | None, timeout: float = 12.0) -> "NW":
+        return cls(RemoteLLM(url, key, model, timeout) if url and model else None)
 
     @property
     def engine(self) -> str:
@@ -1423,8 +1566,14 @@ class NW:
         text = correct_typos(_norm(message))
         earlier = [h.get("text", "") for h in history if h.get("role") == "user" and h.get("text")]
 
-        if not message or (_has(text, GREETINGS) and len(text.split()) <= 3):
+        if not message or (_has(text, GREETINGS) and len(text.split()) <= 3 and not earlier):
             return self._answer(lang, _t("greet", lang), None, _context_kind(files, Facts()))
+        # The language model, when one is set up, answers first; anything it
+        # gets wrong (or no answer at all) falls through to the core tier.
+        if self.llm:
+            llm_answer = self._ask_llm(message, lang, files, history)
+            if llm_answer:
+                return llm_answer
         # "yes", "ok do it", "haan": confirm the request before.
         if earlier and text.strip(" .!") in CONFIRM:
             plan_reply = self._plan_reply(_conversation_facts(earlier), files, lang)
@@ -1458,10 +1607,6 @@ class NW:
             if _has(text, keywords):
                 return self._answer(lang, answer.get(lang) or answer["en"], None, kind)
 
-        if self.llm:
-            llm_answer = self._ask_llm(message, lang, files)
-            if llm_answer:
-                return self._answer(lang, llm_answer[0], llm_answer[1], kind, "llm")
         if files and kind in ("image", "pdf", "document", "sheet"):
             name = files[0].get("name") if len(files) == 1 else f"{len(files)} files"
             return self._answer(lang, _t(f"unknown_{kind}", lang, name=name), None, kind)
@@ -1490,25 +1635,40 @@ class NW:
             reply += " " + _t("need_files", lang)
         return self._answer(lang, reply, {"steps": plan.steps, "summary": summary}, kind)
 
-    def _ask_llm(self, message: str, lang: str, files: list[dict[str, Any]]):
+    def _ask_llm(self, message: str, lang: str, files: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any] | None:
+        """The model's answer, only if its plan is valid and fits the attached files."""
+        from app.errors import KonError
+        from app.pipeline import validate_plan
+
         try:
-            data = self.llm.ask(message, lang, files) if self.llm else None
-        except Exception:  # noqa: BLE001 - a model failure falls back to the core answer
+            data = self.llm.ask(message, lang, files, history) if self.llm else None
+        except Exception as e:  # noqa: BLE001 - timeouts, quota, bad JSON: the core tier answers
+            self.last_llm_error = type(e).__name__
             return None
         if not data:
             return None
         plan = data.get("plan")
         if plan:
-            from app.pipeline import validate_plan
-            from app.errors import KonError
-
             try:
                 steps = validate_plan(plan)
             except KonError:
                 return None
+            if not plan_fits_files(steps, files):
+                return None
             summary = THEN.get(lang, ", ").join(_step_phrase(s, lang) for s in steps)
             plan = {"steps": steps, "summary": summary[:1].upper() + summary[1:]}
-        return str(data["reply"])[:600], plan or None
+        else:
+            plan = None
+        reply = re.sub(r"\s+", " ", str(data["reply"])).strip()[:700]
+        suggestions = [str(x).strip()[:60] for x in (data.get("suggestions") or []) if isinstance(x, str) and x.strip()][:4]
+        kind = _context_kind(files, Facts())
+        return {
+            "lang": lang,
+            "reply": reply,
+            "plan": plan,
+            "suggestions": suggestions or self._suggestions(kind, lang),
+            "engine": "llm",
+        }
 
     def explain(self, code: str, lang: str) -> dict[str, Any]:
         """A longer explanation of an error the app showed."""

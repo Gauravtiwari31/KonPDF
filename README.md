@@ -24,7 +24,7 @@ The app then works on Wi-Fi or mobile data. For local testing you can still poin
 .
 ├── detail.md            what KonPDF is, every feature, architecture, build plan
 ├── engine/              Python conversion engine (FastAPI)
-│   ├── model.py         NW, the assistant (core tier + optional local LLM)
+│   ├── model.py         NW, the assistant (core tier + optional language model)
 │   ├── app/
 │   │   ├── main.py      HTTP API and friendly error handling
 │   │   ├── errors.py    error catalogue in 7 languages (no status codes for people)
@@ -33,7 +33,7 @@ The app then works on Wi-Fi or mobile data. For local testing you can still poin
 │   │   ├── pipeline.py  runs single tools and NW's multi-step plans (whitelisted)
 │   │   ├── converters/  images · pdf · documents · sheets · office (LibreOffice)
 │   │   └── tools/       resize · enhance · pdf_tools
-│   ├── tests/           730 tests
+│   ├── tests/           752 tests
 │   └── Dockerfile       Python + LibreOffice + Noto fonts
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module
@@ -68,7 +68,7 @@ npm run android
 
 The emulator talks to the engine at `10.0.2.2:8000`. On a phone, set the address in **Settings → Converter engine**.
 
-**Optional NW local model:** install `llama-cpp-python`, download a small instruction model in GGUF format (for example Qwen2.5-0.5B-Instruct), and set `NW_MODEL_PATH` to its path before starting the engine. Without it, NW's core tier answers on its own.
+**Optional: give NW a language model.** Set `NW_LLM_URL`, `NW_LLM_MODEL` and `NW_LLM_KEY` on the engine to use any OpenAI-compatible chat API (Groq's free tier works well). Step by step: **[docs/nw-language-model.md](docs/nw-language-model.md)**. Without them, NW's core tier answers on its own.
 
 ## Engine settings
 
@@ -82,4 +82,5 @@ The emulator talks to the engine at `10.0.2.2:8000`. On a phone, set the address
 | `KON_MAX_PARALLEL` | 2 | Jobs running at once |
 | `KON_RATE_LIMIT` | 120 | Requests per minute per IP (0 = off) |
 | `KON_SOFFICE` | auto | Path to LibreOffice |
-| `NW_MODEL_PATH` | – | Optional GGUF model for NW |
+| `NW_LLM_URL`, `NW_LLM_MODEL`, `NW_LLM_KEY` | – | Optional language model for NW ([guide](docs/nw-language-model.md)) |
+| `NW_LLM_TIMEOUT` | 12 | Seconds before NW falls back to its core tier |

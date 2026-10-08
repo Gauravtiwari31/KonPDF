@@ -22,6 +22,13 @@ interface BrutalBaseProps {
   style?: StyleProp<ViewStyle>;
   /** The visible face: padding, size, layout of children. */
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * Let the face grow to the height its container offers, so cards side by
+   * side in a row come out the same height (Home tool tiles). Off by default:
+   * in a list, React Native's legacy layout offers the whole screen height,
+   * and every card would stretch to fill it.
+   */
+  stretch?: boolean;
 }
 
 /**
@@ -47,13 +54,14 @@ function useBrutalStyles(
     borderColor,
     shadowColor,
     contentStyle,
+    stretch,
   }: BrutalBaseProps,
 ) {
   const o = offset ?? t.shadowOffset;
   const r = radius ?? t.radius.md;
   const faceStyle = StyleSheet.flatten(contentStyle);
   const hug = faceStyle?.width !== undefined;
-  const grow = faceStyle?.height === undefined;
+  const grow = !!stretch && faceStyle?.height === undefined;
   return {
     hasShadow: o > 0,
     outer: [{ paddingRight: o, paddingBottom: o }, hug && styles.hug],

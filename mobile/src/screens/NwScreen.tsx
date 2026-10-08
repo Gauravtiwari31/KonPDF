@@ -26,6 +26,8 @@ interface Message {
   text: string;
   plan?: NwPlan | null;
   suggestions?: string[];
+  /** NW's greeting: shown until the person sends their first message. */
+  intro?: boolean;
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -90,7 +92,7 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
     }
   }, [keyboardHeight]);
 
-  const addReply = useCallback((reply: NwReply) => {
+  const addReply = useCallback((reply: NwReply, intro = false) => {
     setMessages(m => [
       ...m,
       {
@@ -99,6 +101,7 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         text: reply.reply,
         plan: reply.plan,
         suggestions: reply.suggestions,
+        intro,
       },
     ]);
   }, []);
@@ -138,7 +141,7 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
       ? engine.nwExplain(errorCode)
       : engine.nwChat({ message: '', files: [], history: [] })
     )
-      .then(addReply)
+      .then(reply => addReply(reply, !errorCode))
       .catch(e => setError(toFriendlyError(e, lang)))
       .finally(() => setThinking(false));
     // Only once, when the screen opens.
@@ -151,8 +154,9 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
       return;
     }
     const mine: Message = { id: id(), role: 'user', text: message };
-    const history = messages;
-    setMessages(m => [...m, mine]);
+    // The greeting has done its job once the conversation starts.
+    const history = messages.filter(m => !m.intro);
+    setMessages([...history, mine]);
     setDraft('');
     ask(message, history);
   };
