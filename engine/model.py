@@ -1,21 +1,15 @@
-"""NW: KonPDF's built-in assistant. Works with no API key; can use a language model you set up.
+"""NW: KonPDF's built-in assistant. No API keys, no outside AI service, no download.
 
 NW turns plain-language requests ("make this photo under 50 KB",
 "isko PDF bana do", "comprime este PDF a 1 MB") into a plan of KonPDF tool
 steps the person confirms with one tap, answers how-to questions, and
 explains errors in simple words, in the language the person writes in.
 
-Two tiers, both in this file:
-
-* Core (always on): language detection by script and keyword scores, a
-  multilingual lexicon of actions, formats and units, regex extractors for
-  sizes, dimensions, percentages, angles and page ranges, and a small
-  knowledge base. Deterministic and fast; needs no download.
-* Language model (optional): any OpenAI-compatible chat API (Groq, Google
-  Gemini, OpenRouter, or your own Ollama / llama.cpp server), set up with
-  NW_LLM_URL, NW_LLM_KEY and NW_LLM_MODEL on the engine. It answers first;
-  its plans must pass the same whitelist and fit the attached files, or the
-  core tier answers instead. It never sees file contents.
+It is not a trained model: it is a language engine built by hand for file
+jobs. Language detection by script and keyword scores, typo correction, a
+multilingual lexicon of actions, formats and units, regex extractors for
+sizes, dimensions, percentages, angles and page ranges, conversation memory
+for follow-ups, and a small knowledge base. Deterministic, instant, offline.
 
 Languages: English (en), Hindi (hi), Hinglish (hi-Latn), Spanish (es),
 French (fr), German (de), Portuguese (pt).
@@ -53,7 +47,7 @@ _STOPWORDS: dict[str, set[str]] = {
     "fr": set(
         "le la les des de du un une et en pour avec convertir convertis convertissez compresser compresse réduire "
         "réduis fichier fichiers image images photo photos je veux peux comment pourquoi moins taille pages page "
-        "mon ma mes ce ces cette est-ce au aux est ajoute ajouter ajoutez fusionne fusionnez sur".split()
+        "mon ma mes ce ces cette est-ce au aux est ajoute ajouter ajoutez fusionne fusionnez sur mets mettre mettez mot passe compresse transforme".split()
     ),
     "de": set(
         "der die das und ein eine einen mit für von zu in umwandeln konvertieren konvertiere verkleinern verkleinere "
@@ -147,7 +141,7 @@ ACTIONS: dict[str, list[str]] = {
     "merge": [
         "merge", "combine", "join", "put together", "into one", "single pdf", "one pdf", "jod", "jodo", "jod do", "milao", "mila do", "ek pdf",
         "जोड़", "जोड़ो", "मिलाओ", "एक पीडीएफ", "unir", "combinar", "juntar", "fusionar", "fusionner", "combiner", "assembler",
-        "zusammenfügen", "kombinieren", "verbinden", "mesclar", "fusionne", "fusionnez", "junte", "juntar",
+        "zusammenfügen", "kombinieren", "verbinden", "mesclar", "fusionne", "fusionnez", "junte", "juntar", "une estos", "une los", "unir",
     ],
     "split": ["split", "separate", "break into", "alag", "alag karo", "अलग", "dividir", "separar", "diviser", "séparer", "aufteilen", "trennen", "teilen"],
     "rotate": [
@@ -181,6 +175,9 @@ ACTIONS: dict[str, list[str]] = {
     "compress": [
         "compress", "smaller", "reduce", "shrink", "decrease", "lighter", "less size", "low size", "small size", "chhota", "chota",
         "chhoti", "choti", "kam karo", "size kam", "छोटा", "छोटी", "कम करो", "साइज़ कम", "comprimir", "comprime", "reducir",
+        "too big", "too large", "too heavy", "very big", "very large", "heavy", "huge", "optimize", "optimise", "size zyada",
+        "size jyada", "size bada", "bahut bada", "bahut badi", "bhari", "साइज़ ज़्यादा", "बहुत बड़ा", "compresse", "compressez", "trop lourd",
+        "trop gros", "muy grande", "muy pesado", "zu groß", "muito grande", "muito pesado",
         "más pequeño", "compresser", "réduire", "plus petit", "komprimieren", "verkleinern", "kleiner", "reduzir", "diminuir",
         "menor",
     ],
@@ -191,7 +188,7 @@ ACTIONS: dict[str, list[str]] = {
     "convert": [
         "convert", "change to", "turn into", "turn it into", "make it a", "make it", "save as", "export as", "badlo", "bana do", "banao",
         "banado", "convert karo", "बदलो", "बनाओ", "बना दो", "कन्वर्ट", "convertir", "convierte", "pasar a", "convertis",
-        "transformer", "en format", "umwandeln", "konvertieren", "converter", "converta", "transformar",
+        "transformer", "transforme", "transformez", "en format", "umwandeln", "konvertieren", "converter", "converta", "transformar",
     ],
     "enhance": [
         "enhance", "improve", "better", "clearer", "clear", "sharpen", "sharp", "brighten", "fix", "clean up", "clean", "quality",
@@ -214,15 +211,15 @@ FILTER_WORDS: dict[str, list[str]] = {
 }  # fmt: skip
 
 PRESET_WORDS: dict[str, list[str]] = {
+    "signature": ["signature", "sign", "dastakhat", "हस्ताक्षर", "firma", "signature scan", "unterschrift", "assinatura"],
     "passport": ["passport", "पासपोर्ट", "pasaporte", "passeport", "reisepass", "passaporte"],
     "us_visa": ["us visa", "visa photo", "american visa", "visa"],
     "india_form_photo": ["govt form", "government form", "form photo", "sarkari", "ssc", "upsc", "neet", "jee", "exam form", "application form", "फॉर्म", "सरकारी"],
-    "signature": ["signature", "sign", "dastakhat", "हस्ताक्षर", "firma", "signature scan", "unterschrift", "assinatura"],
     "id_scan": ["aadhaar", "aadhar", "pan card", "id card", "id scan", "आधार", "पैन"],
     "instagram_story": ["story", "stories", "reel", "reels"],
     "instagram_portrait": ["instagram portrait", "insta portrait"],
     "instagram_square": ["instagram", "insta", "ig post"],
-    "whatsapp_dp": ["whatsapp", "dp", "profile picture", "profile pic", "pfp"],
+    "whatsapp_dp": ["whatsapp dp", "dp", "profile picture", "profile pic", "pfp", "display picture"],
     "youtube_thumb": ["youtube", "thumbnail", "yt thumb"],
     "linkedin_banner": ["linkedin"],
     "x_header": ["twitter", "x header"],
@@ -401,6 +398,7 @@ class Facts:
     upscale: bool = False
     denoise: bool = False
     strip: bool = False
+    high_quality: bool = False
     flip: str | None = None  # "horizontal" | "vertical"
     crop: str | None = None  # "1:1", "16:9"...
 
@@ -469,6 +467,19 @@ def extract(raw: str) -> Facts:
     pct = re.search(r"(\d{1,3}(?:[.,]\d+)?)\s*(%|percent|per cent|prozent|por ciento|pour cent|por cento|pratishat|प्रतिशत)", text)
     if pct:
         f.percent = _to_float(pct.group(1))
+    elif re.search(r"\b(?:half|aadha|aadhi|आधा|mitad|moitié|hälfte|metade)\b", text):
+        f.percent = 50.0
+    elif re.search(r"\b(?:quarter|chautha|cuarto|quart|viertel)\b", text):
+        f.percent = 25.0
+    # "1920 wide", "800 px tall"
+    if not f.width and not f.height:
+        wide = re.search(r"(\d{2,5})\s*(?:px\s*|pixels?\s*)?(?:wide|width|across)\b", text)
+        tall = re.search(r"(\d{2,5})\s*(?:px\s*|pixels?\s*)?(?:tall|high|height)\b", text)
+        if wide:
+            f.width = int(wide.group(1))
+        if tall:
+            f.height = int(tall.group(1))
+    f.high_quality = _has(text, ["high quality", "best quality", "good quality", "hd quality", "sharp", "crisp", "clear", "achhi quality", "alta calidad", "haute qualité", "hohe qualität", "alta qualidade"])
     dpi = re.search(r"(\d{2,4})\s*dpi", text)
     if dpi:
         f.dpi = int(dpi.group(1))
@@ -541,7 +552,8 @@ def extract(raw: str) -> Facts:
     if tgt:
         candidates.append(tgt.group(1))
     tgt2 = re.search(r"\.?([a-z]+)\s+(?:mein|me|में|bana|banao|banado|bna|बना|format mein|file mein)\b", text)
-    if tgt2:
+    # "pdf bana do" names a format; "photo banana hai" is about the photo, not a format.
+    if tgt2 and tgt2.group(1) not in IMAGE_TARGET_WORDS:
         candidates.insert(0, tgt2.group(1))
     for word in candidates:
         if word in IMAGE_TARGET_WORDS:
@@ -566,6 +578,18 @@ def extract(raw: str) -> Facts:
     for action, words in ACTIONS.items():
         if _has(text, words):
             f.actions.add(action)
+    # A password with no "remove/unlock" is a request to lock ("protect with password hello123").
+    if f.password and "unlock" not in f.actions:
+        f.actions.add("protect")
+    # "put page 3 first", "move page 5 to the start", "make page 2 the first page"
+    move = re.search(r"(?:put|move|make|bring|shift|rakho|karo)\s+(?:the\s+)?(?:page|पेज)\s*(\d+)\s+(?:to\s+the\s+|at\s+the\s+|as\s+the\s+|the\s+)?(?:first|start|front|top|beginning|pehle|shuru)", text)
+    if move:
+        f.actions.add("reorder")
+        f.pages = move.group(1)
+    # "blurry, make it clear" is a complaint, not a request for the blur filter.
+    if "blur" in f.filters and ("enhance" in f.actions or f.high_quality):
+        f.filters.remove("blur")
+        f.actions.add("enhance")
     # "delete some pages", "remove the last page", "keep just pages 2-4"
     page_word = r"(?:pages?|पेज|páginas?|seiten?|pannon?)"
     if re.search(r"\b(?:delete|remove|get rid of|drop|erase|cut out|hatao|hata do|eliminar|borrar|quitar|supprimer|enlever|löschen|entfernen|excluir|remover|tirar)\b.{0,25}" + page_word, text) or re.search(
@@ -809,6 +833,7 @@ STEP_TEXT: dict[str, dict[str, str]] = {
     "protect": {"en": "add a password", "hi": "पासवर्ड लगाना", "hi-Latn": "password lagana", "es": "poner contraseña", "fr": "ajouter un mot de passe", "de": "Passwort setzen", "pt": "colocar senha"},
     "unlock": {"en": "remove the password", "hi": "पासवर्ड हटाना", "hi-Latn": "password hatana", "es": "quitar la contraseña", "fr": "retirer le mot de passe", "de": "Passwort entfernen", "pt": "remover a senha"},
     "watermark": {"en": "add the watermark “{text}”", "hi": "“{text}” वॉटरमार्क लगाना", "hi-Latn": "“{text}” watermark lagana", "es": "añadir la marca de agua “{text}”", "fr": "ajouter le filigrane « {text} »", "de": "Wasserzeichen „{text}“ hinzufügen", "pt": "adicionar a marca d'água “{text}”"},
+    "reorder": {"en": "move page {pages} to the front", "hi": "पेज {pages} को सबसे आगे करना", "hi-Latn": "page {pages} ko sabse aage karna", "es": "poner la página {pages} al principio", "fr": "mettre la page {pages} en premier", "de": "Seite {pages} nach vorne setzen", "pt": "pôr a página {pages} no início"},
     "img_rotate": {"en": "rotate the picture {angle}°", "hi": "तस्वीर {angle}° घुमाना", "hi-Latn": "photo {angle}° ghumana", "es": "girar la imagen {angle}°", "fr": "pivoter l’image de {angle}°", "de": "das Bild um {angle}° drehen", "pt": "girar a imagem {angle}°"},
     "img_flip": {"en": "flip it", "hi": "उल्टा (मिरर) करना", "hi-Latn": "mirror karna", "es": "voltearla", "fr": "la retourner", "de": "spiegeln", "pt": "espelhar"},
     "img_crop": {"en": "crop to {ratio}", "hi": "{ratio} में काटना", "hi-Latn": "{ratio} mein crop karna", "es": "recortar a {ratio}", "fr": "recadrer en {ratio}", "de": "auf {ratio} zuschneiden", "pt": "cortar em {ratio}"},
@@ -1033,6 +1058,8 @@ def _step_phrase(step: dict[str, Any], lang: str) -> str:
         return s("rotate", angle={270: "−90", 90: "90"}.get(p.get("angle", 90), p.get("angle", 90)))
     if tool in ("extract", "delete"):
         return s(tool, pages=p.get("pages"))
+    if tool == "reorder":
+        return s("reorder", pages=p.get("order"))
     if tool == "watermark":
         return s("watermark", text=p.get("text", ""))
     return s(tool)
@@ -1096,7 +1123,7 @@ def _context_kind(files: list[dict[str, Any]], facts: Facts) -> str:
             return "document"
     if facts.preset or facts.width or facts.print_size or facts.filters or facts.low_light or facts.upscale or facts.crop or facts.flip:
         return "image"
-    if facts.actions & {"merge", "split", "extract", "delete", "protect", "unlock", "watermark", "page_numbers"}:
+    if facts.actions & {"merge", "split", "extract", "delete", "reorder", "protect", "unlock", "watermark", "page_numbers"}:
         return "pdf"
     return "unknown"
 
@@ -1133,7 +1160,7 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
         plan.missing = "more_files"
         return plan
 
-    pdf_only = {"merge", "split", "extract", "delete", "protect", "unlock", "watermark", "page_numbers"}
+    pdf_only = {"merge", "split", "extract", "delete", "reorder", "protect", "unlock", "watermark", "page_numbers"}
     # Rotating is a PDF job for PDFs (or when pages are named), an image job otherwise.
     rotate_pdf = "rotate" in a and (kind in ("pdf", "mixed", "document") or (kind == "unknown" and facts.pages is not None))
     image_side = kind in ("image", "unknown") and not (a & pdf_only) and not rotate_pdf
@@ -1167,7 +1194,7 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
     # 2. Resize (images)
     if image_side and kind != "mixed":
         params: dict[str, Any] = {}
-        if facts.preset:
+        if facts.preset and not (facts.width or facts.height or facts.print_size):
             params.update(mode="preset", preset=facts.preset)
         elif facts.width or facts.height:
             params.update(mode="pixels", width=facts.width, height=facts.height, fit="fill" if facts.width and facts.height else None)
@@ -1233,6 +1260,8 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
             if not facts.pages:
                 plan.missing = "pages"
             plan.add("delete", pages=facts.pages)
+        if "reorder" in a:
+            plan.add("reorder", order=facts.pages)
         if rotate_pdf:
             plan.add("rotate", angle=facts.angle or 90, pages=facts.pages)
         if "unlock" in a:
@@ -1249,6 +1278,21 @@ def build_plan(facts: Facts, files: list[dict[str, Any]]) -> Plan:
             if not facts.password:
                 plan.missing = "password"
             plan.add("protect", password=facts.password)
+
+    # A PDF becoming something else: page jobs first, conversion last.
+    # "pages 2-3 as images" is one conversion of just those pages.
+    if kind == "pdf":
+        converts = [s for s in plan.steps if s["tool"] == "convert"]
+        if converts and converts[0]["params"].get("to") != "pdf":
+            convert = converts[0]
+            others = [s for s in plan.steps if s is not convert]
+            keep = [s for s in others if s["tool"] == "extract"]
+            if keep and convert["params"].get("to") in IMAGE_OUT and len(others) == 1:
+                convert["params"]["pages"] = keep[0]["params"].get("pages")
+                others = []
+            if convert["params"].get("to") in IMAGE_OUT and (facts.dpi or facts.high_quality):
+                convert["params"]["dpi"] = facts.dpi or 200
+            plan.steps = others + [convert]
 
     # Converting with nothing to convert to
     if not plan.steps and "convert" in a and not target:
@@ -1346,71 +1390,8 @@ def _size_note(plan: Plan, files: list[dict[str, Any]], lang: str) -> str | None
 
 
 # --------------------------------------------------------------------------
-# Language-model tier (optional): any OpenAI-compatible chat API
+# Checking plans against the attached files
 # --------------------------------------------------------------------------
-#
-# Set three environment variables on the engine (never in the app):
-#   NW_LLM_URL    base URL, e.g. https://api.groq.com/openai/v1
-#                 (also Google Gemini's OpenAI endpoint, OpenRouter, or your
-#                 own Ollama / llama.cpp server)
-#   NW_LLM_KEY    the service's API key
-#   NW_LLM_MODEL  the model name the service uses
-# The model only sees the conversation and file names, types and sizes, never
-# file contents. Its plan must pass the same checks as everything else; if
-# the service fails, is slow, or answers nonsense, the core tier answers.
-
-LLM_SYSTEM_PROMPT = """You are NW, the assistant inside KonPDF, an Android app that converts and edits files on its own server.
-KonPDF works with images (jpg, png, webp, heic, avif, gif, bmp, tiff, ico, svg), PDFs, documents (docx, txt, md, html; doc/odt/rtf/pptx when LibreOffice is installed) and spreadsheets (xlsx, xls, ods, csv, tsv, json).
-KonPDF does NOT do: video, audio, OCR (reading text out of pictures), background removal, AI image generation, translation, or editing the text inside a document. Say so kindly and offer what it can do instead.
-
-Your job: understand what the person wants done to the attached files and turn it into a plan of KonPDF tool steps. Steps run in order; each step's output files are the next step's input.
-
-TOOLS (use only these names and parameters):
-- convert {"to": one of jpg png webp bmp gif tiff ico avif pdf docx txt md html xlsx csv tsv json, optional "quality": 1-100, "page_size": "a4"|"letter"|"fit", "combine": true|false, "dpi": 72-600, "pages": "1-3,7"}
-    images -> another image format, pdf (several images become ONE pdf unless combine=false), or docx
-    pdf -> jpg/png/webp/tiff (one image per page), docx, txt, md, html, xlsx/csv (tables only)
-    docx/txt/md/html -> pdf, docx, txt, md, html, jpg, png, xlsx/csv (tables)
-    sheets -> xlsx, csv, tsv, json, html, md, pdf, docx
-- resize (images only) {"mode": "filesize"|"pixels"|"percent"|"longest"|"print"|"preset"|"compress"|"transform",
-    "max_kb", "min_kb", "width", "height", "fit": "fit"|"fill"|"contain"|"stretch", "percent", "longest",
-    "print": {"width", "height", "unit": "cm"|"mm"|"in", "dpi"}, "preset": one of passport us_visa india_form_photo signature id_scan
-    instagram_square instagram_portrait instagram_story whatsapp_dp youtube_thumb linkedin_banner x_header hd full_hd uhd_4k a4_300dpi email,
-    "format": jpg|png|webp, "rotate": 90|180|270 (clockwise), "flip": "horizontal"|"vertical", "crop": "1:1"|"4:3"|"3:4"|"16:9"|"9:16", "strip_metadata": true}
-    "make it under 50 KB" -> mode filesize, max_kb 50. "1 MB" = 1024 KB. "compress"/"smaller" with no size -> mode compress.
-- enhance (images only) {"preset": auto|document|bw_document|low_light|portrait|denoise|upscale_2x, "filter": grayscale|sepia|vintage|vivid|cool|warm|fade|noir|invert|blur,
-    "adjust": {"brightness"|"contrast"|"saturation"|"sharpness"|"warmth": -100..100}}
-- compress_pdf (pdfs) {"target_kb"} or {"level": "low"|"medium"|"strong"}
-- merge (2+ pdfs and/or images -> one pdf) {}
-- split (pdf) {"mode": "each"} | {"mode": "every", "every": N} | {"mode": "ranges", "ranges": "1-3,4-6"}
-- extract (pdf, keep pages) {"pages": "1-3,7"}; delete (pdf) {"pages": "2"}; reorder (pdf) {"order": "3,1,2"}
-- rotate (pdf pages) {"angle": 90|180|270, "pages": optional}
-- protect (pdf) {"password"}; unlock (pdf) {"password"}
-- watermark (pdf) {"text", "style": "diagonal"|"center"|"bottom", "opacity": 0.05-0.9}
-- page_numbers (pdf) {"position": "bottom-center"|"bottom-right"|"top-right", "style": "n"|"page_n_of_total"}
-Pages are 1-based; "last" means the last page.
-
-RULES
-- Reply in the person's language: {lang} (hi = Hindi in Devanagari, hi-Latn = Hinglish in Latin letters).
-- "reply": one or two short, warm, plain sentences. Say what you will do. No jargon, no error codes.
-- If something needed is missing (a password, which pages, which format), set "plan" to null and ask for it in "reply".
-- If no files are attached yet, still give the plan and tell them to attach the file with the + button.
-- Never invent tools or parameters. Never claim you already did it: the person taps Run.
-- Use earlier messages: "also...", "instead", "yes", "that one" refer to the conversation so far.
-- "suggestions": up to 4 very short next requests in the person's language, fitting the files.
-
-Answer with ONLY a JSON object, no other text:
-{"reply": "...", "plan": {"steps": [{"tool": "...", "params": {...}}]} or null, "suggestions": ["...", "..."]}
-
-EXAMPLES
-Files: photo.jpg (image, 2400 KB). Person: "passport photo under 50kb"
-{"reply": "Sure! I'll make it passport size and keep it under 50 KB.", "plan": {"steps": [{"tool": "resize", "params": {"mode": "preset", "preset": "passport", "max_kb": 50}}]}, "suggestions": ["Make it a PDF", "Black and white"]}
-Files: a.jpg, b.jpg (images). Person: "isko ek pdf bana do"
-{"reply": "Ho jayega! Dono photos ko ek PDF mein jod deta hoon.", "plan": {"steps": [{"tool": "convert", "params": {"to": "pdf"}}]}, "suggestions": ["PDF ko chhota karo", "Page numbers daalo"]}
-Files: report.pdf (pdf, 8000 KB). Person: "too big for email, also lock it"
-{"reply": "I'll shrink it for email. Which password should I use to lock it?", "plan": null, "suggestions": ["Password: ..."]}
-Files: scan.jpg (image). Person: "can you read the text in this?"
-{"reply": "KonPDF can't read text from pictures, but I can clean up the scan so it's easier to read, or turn it into a PDF.", "plan": null, "suggestions": ["Clean up the scan", "Make it a PDF"]}
-"""
 
 IMAGE_TOOLS = {"resize", "enhance"}
 PDF_TOOLS = {"compress_pdf", "split", "extract", "delete", "reorder", "rotate", "protect", "unlock", "watermark", "page_numbers"}
@@ -1462,88 +1443,15 @@ def plan_fits_files(steps: list[dict[str, Any]], files: list[dict[str, Any]]) ->
     return True
 
 
-def _json_object(text: str) -> dict[str, Any] | None:
-    """The first JSON object in a model's answer (models sometimes wrap it in ``` fences)."""
-    start, depth = text.find("{"), 0
-    if start < 0:
-        return None
-    for i in range(start, len(text)):
-        if text[i] == "{":
-            depth += 1
-        elif text[i] == "}":
-            depth -= 1
-            if depth == 0:
-                try:
-                    value = json.loads(text[start : i + 1])
-                except ValueError:
-                    return None
-                return value if isinstance(value, dict) else None
-    return None
-
-
-class RemoteLLM:
-    """A chat model behind an OpenAI-compatible API (Groq, Gemini, OpenRouter, Ollama, llama.cpp server...)."""
-
-    def __init__(self, url: str, key: str | None, model: str, timeout: float = 12.0) -> None:
-        self.url = url.rstrip("/") + "/chat/completions"
-        self.key = key
-        self.model = model
-        self.timeout = timeout
-
-    def ask(self, message: str, lang: str, files: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any] | None:
-        import urllib.request
-
-        attached = "\n".join(
-            f"- {f.get('name')} ({_kind_of_ext(_ext(f))}, {max(1, int(f.get('size') or 0) // 1024)} KB)" for f in files[:20]
-        ) or "(none yet)"
-        messages: list[dict[str, str]] = [{"role": "system", "content": LLM_SYSTEM_PROMPT.replace("{lang}", lang)}]
-        for turn in history[-8:]:
-            text = str(turn.get("text", ""))[:800]
-            if text:
-                messages.append({"role": "user" if turn.get("role") == "user" else "assistant", "content": text})
-        messages.append({"role": "user", "content": f"Files attached:\n{attached}\n\nPerson: {message}"})
-        import urllib.error
-
-        headers = {"Content-Type": "application/json", "User-Agent": "KonPDF-engine"}
-        if self.key:
-            headers["Authorization"] = f"Bearer {self.key}"
-        payload: dict[str, Any] = {"model": self.model, "messages": messages, "temperature": 0.1, "max_tokens": 500, "response_format": {"type": "json_object"}}
-
-        def call() -> dict[str, Any]:
-            request = urllib.request.Request(self.url, data=json.dumps(payload).encode(), headers=headers, method="POST")
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                return json.loads(response.read().decode("utf-8"))
-
-        try:
-            data = call()
-        except urllib.error.HTTPError as e:
-            # Some models don't take "JSON mode"; the prompt asks for JSON anyway.
-            if e.code != 400:
-                raise
-            payload.pop("response_format")
-            data = call()
-        content = data["choices"][0]["message"]["content"]
-        answer = _json_object(content or "")
-        return answer if answer and isinstance(answer.get("reply"), str) and answer["reply"].strip() else None
-
-
 # --------------------------------------------------------------------------
 # NW
 # --------------------------------------------------------------------------
 
 
 class NW:
-    def __init__(self, llm: RemoteLLM | None = None) -> None:
-        self.llm = llm
-        self.last_llm_error: str | None = None
-
-    @classmethod
-    def from_settings(cls, url: str | None, key: str | None, model: str | None, timeout: float = 12.0) -> "NW":
-        return cls(RemoteLLM(url, key, model, timeout) if url and model else None)
-
     @property
     def engine(self) -> str:
-        return "core+llm" if self.llm else "core"
+        return "core"
 
     def _suggestions(self, kind: str, lang: str) -> list[str]:
         group = kind if kind in ("image", "pdf", "document", "sheet") else "other"
@@ -1568,12 +1476,6 @@ class NW:
 
         if not message or (_has(text, GREETINGS) and len(text.split()) <= 3 and not earlier):
             return self._answer(lang, _t("greet", lang), None, _context_kind(files, Facts()))
-        # The language model, when one is set up, answers first; anything it
-        # gets wrong (or no answer at all) falls through to the core tier.
-        if self.llm:
-            llm_answer = self._ask_llm(message, lang, files, history)
-            if llm_answer:
-                return llm_answer
         # "yes", "ok do it", "haan": confirm the request before.
         if earlier and text.strip(" .!") in CONFIRM:
             plan_reply = self._plan_reply(_conversation_facts(earlier), files, lang)
@@ -1625,7 +1527,10 @@ class NW:
         if len(plan.steps) == 1 and plan.steps[0]["tool"] == "convert" and exts == {plan.steps[0]["params"].get("to")}:
             name = files[0].get("name") if len(files) == 1 else f"{len(files)} files"
             return self._answer(lang, _t("already_format", lang, name=name, fmt=str(plan.steps[0]["params"]["to"]).upper()), None, kind)
-        summary =THEN.get(lang, ", ").join(_step_phrase(s, lang) for s in plan.steps)
+        # Never offer a plan that would fail on these files.
+        if not plan_fits_files(plan.steps, files):
+            return None
+        summary = THEN.get(lang, ", ").join(_step_phrase(s, lang) for s in plan.steps)
         summary = summary[0].upper() + summary[1:]
         reply = _t("plan", lang, summary=summary)
         note = _size_note(plan, files, lang)
@@ -1634,41 +1539,6 @@ class NW:
         if not files:
             reply += " " + _t("need_files", lang)
         return self._answer(lang, reply, {"steps": plan.steps, "summary": summary}, kind)
-
-    def _ask_llm(self, message: str, lang: str, files: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any] | None:
-        """The model's answer, only if its plan is valid and fits the attached files."""
-        from app.errors import KonError
-        from app.pipeline import validate_plan
-
-        try:
-            data = self.llm.ask(message, lang, files, history) if self.llm else None
-        except Exception as e:  # noqa: BLE001 - timeouts, quota, bad JSON: the core tier answers
-            self.last_llm_error = type(e).__name__
-            return None
-        if not data:
-            return None
-        plan = data.get("plan")
-        if plan:
-            try:
-                steps = validate_plan(plan)
-            except KonError:
-                return None
-            if not plan_fits_files(steps, files):
-                return None
-            summary = THEN.get(lang, ", ").join(_step_phrase(s, lang) for s in steps)
-            plan = {"steps": steps, "summary": summary[:1].upper() + summary[1:]}
-        else:
-            plan = None
-        reply = re.sub(r"\s+", " ", str(data["reply"])).strip()[:700]
-        suggestions = [str(x).strip()[:60] for x in (data.get("suggestions") or []) if isinstance(x, str) and x.strip()][:4]
-        kind = _context_kind(files, Facts())
-        return {
-            "lang": lang,
-            "reply": reply,
-            "plan": plan,
-            "suggestions": suggestions or self._suggestions(kind, lang),
-            "engine": "llm",
-        }
 
     def explain(self, code: str, lang: str) -> dict[str, Any]:
         """A longer explanation of an error the app showed."""

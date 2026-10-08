@@ -267,3 +267,10 @@ def test_bad_transform_options(samples, workdirs, options):
     with pytest.raises(KonError) as e:
         run_resize(samples, workdirs, **options)
     assert e.value.code == "INVALID_OPTIONS"
+
+
+def test_reorder_moves_named_pages_to_the_front(samples, workdirs):
+    (path,) = pdf_tool(samples, workdirs, "reorder", order="3")
+    with pymupdf.open(path) as doc:
+        assert doc.page_count == 3
+        assert ["Chapter 3" in doc[0].get_text(), "Chapter 1" in doc[1].get_text(), "Chapter 2" in doc[2].get_text()] == [True, True, True]

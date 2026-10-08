@@ -54,6 +54,27 @@ REQUESTS = [
     ("rotate 180", IMG), ("convert it into excel", PDF), ("turn this doc into a pdf", DOCX), ("csv please", XLSX),
     ("compress to 70%", IMG), ("1200 px width", IMG), ("make it 4x6 inch print", IMG), ("clean up this scanned page", IMG),
     ("make this document black and white", IMG), ("i want hd quality", IMG),
+    # A third batch: vaguer, messier, more conversational
+    ("this is too big", IMG), ("its too heavy to send on whatsapp", IMG), ("upload karna hai portal pe, size zyada hai", IMG),
+    ("file size kam karna hai", PDF), ("need small size", IMG), ("make it lighter for email", PDF), ("optimize this", IMG),
+    ("make it look better", IMG), ("photo bahut dark hai", IMG), ("pic blur hai thoda clear karo", IMG), ("fix this scan", IMG),
+    ("convert to pdf and make it under 500kb", IMG), ("resize to 600x600 and convert to png", IMG),
+    ("make it black and white and under 100kb", IMG), ("compress and add password 4321", PDF), ("rotate left and save as png", IMG),
+    ("crop square then 200kb", IMG), ("pdf to jpg high quality", PDF), ("pdf to png 300 dpi", PDF), ("only pages 2 to 3 as images", PDF),
+    ("ssc photo 20 to 50 kb", IMG), ("upsc form signature size", IMG), ("aadhar card pdf under 200kb", PDF),
+    ("pan card photo 3.5x4.5 cm", IMG), ("neet photo banana hai", IMG), ("passport photo 600 x 600", IMG),
+    ("resume ko pdf banana hai", DOCX), ("marksheet ko pdf me", IMG), ("under 0.5 mb", IMG), ("less than 500 KB please", IMG),
+    ("max size 2MB", PDF), ("100kb tak", IMG), ("50 k", IMG), ("half the size", IMG), ("make it 1920 wide", IMG),
+    ("width 800", IMG), ("height 1080", IMG), ("into word doc", PDF), ("as an excel sheet", PDF), ("give me a txt file", DOCX),
+    ("to markdown", DOCX), ("webp me badlo", IMG), ("jpeg chahiye", PDF), ("in PNG format", IMG), ("export as csv", XLSX),
+    ("json format", XLSX), ("remove pages 2 and 3", PDF), ("delete the second page", PDF), ("i only need the first page", PDF),
+    ("break this pdf into separate files", PDF), ("put page 3 first", PDF), ("rotate page 2 by 180", PDF), ("add page no", PDF),
+    ("add confidential watermark", PDF), ("remove the password, it's 1234abcd", PDF), ("protect with password hello123", PDF),
+    ("convierte esta imagen en pdf", IMG), ("reduce el tamaño a 100 kb", IMG), ("transforme en word", PDF),
+    ("compresse ce pdf", PDF), ("mets un mot de passe 1234", PDF), ("Bild auf 200 KB verkleinern", IMG),
+    ("PDF in Word umwandeln", PDF), ("Seitenzahlen hinzufügen", PDF), ("transformar em pdf", IMG), ("diminuir para 300 kb", IMG),
+    ("girar a imagem", IMG), ("इसका साइज़ 100 केबी करो", IMG), ("इस पीडीएफ को छोटा करो", PDF), ("फोटो को साफ़ करो", IMG),
+    ("इसे वर्ड में बदलो", PDF),
 ]  # fmt: skip
 
 
@@ -161,3 +182,33 @@ def test_merge_with_one_pdf_asks_for_more(client, samples):
 def test_watermark_text_from_plain_words(client, samples):
     reply = client.post("/api/nw/chat", json={"message": "stamp DRAFT on it", "files": _meta(samples[PDF])}).json()
     assert reply["plan"]["steps"] == [{"tool": "watermark", "params": {"text": "DRAFT", "style": "diagonal", "opacity": 0.3}}]
+
+
+@pytest.mark.parametrize(
+    "message,kind,steps",
+    [
+        # What people mean, not just something that runs.
+        ("its too heavy to send on whatsapp", IMG, [("resize", {"mode": "compress"})]),
+        ("pic blur hai thoda clear karo", IMG, [("enhance", {"preset": "auto"})]),
+        ("upsc form signature size", IMG, [("resize", {"preset": "signature"})]),
+        ("pan card photo 3.5x4.5 cm", IMG, [("resize", {"mode": "print"})]),
+        ("passport photo 600 x 600", IMG, [("resize", {"mode": "pixels", "width": 600, "height": 600})]),
+        ("pdf to png 300 dpi", PDF, [("convert", {"to": "png", "dpi": 300})]),
+        ("only pages 2 to 3 as images", PDF, [("convert", {"to": "jpg", "pages": "2-3"})]),
+        ("delete page 2 and convert to word", PDF, [("delete", {"pages": "2"}), ("convert", {"to": "docx"})]),
+        ("half the size", IMG, [("resize", {"mode": "percent", "percent": 50.0})]),
+        ("make it 1920 wide", IMG, [("resize", {"width": 1920})]),
+        ("put page 3 first", PDF, [("reorder", {"order": "3"})]),
+        ("protect with password hello123", PDF, [("protect", {"password": "hello123"})]),
+        ("neet photo banana hai", IMG, [("resize", {"preset": "india_form_photo"})]),
+    ],
+)
+def test_plans_match_what_people_mean(client, samples, message, kind, steps):
+    reply = client.post("/api/nw/chat", json={"message": message, "files": _meta(samples[kind])}).json()
+    assert reply["plan"], reply["reply"]
+    got = reply["plan"]["steps"]
+    assert [s["tool"] for s in got] == [t for t, _ in steps]
+    for (_, expected), step in zip(steps, got):
+        for key, value in expected.items():
+            assert step["params"].get(key) == value, (key, got)
+    assert "format" not in got[0]["params"] or message != "neet photo banana hai"

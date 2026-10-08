@@ -50,11 +50,6 @@ class Settings:
         )
     )
     soffice: str | None = field(default_factory=_find_soffice)
-    # NW's optional language model: any OpenAI-compatible chat API.
-    nw_llm_url: str | None = field(default_factory=lambda: os.environ.get("NW_LLM_URL") or None)
-    nw_llm_key: str | None = field(default_factory=lambda: os.environ.get("NW_LLM_KEY") or None)
-    nw_llm_model: str | None = field(default_factory=lambda: os.environ.get("NW_LLM_MODEL") or None)
-    nw_llm_timeout: int = field(default_factory=lambda: _int("NW_LLM_TIMEOUT", 12))
 
     @property
     def max_file_bytes(self) -> int:

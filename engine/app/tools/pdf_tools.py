@@ -117,7 +117,12 @@ def delete(inputs, options, out_dir, work, notes):
 
 
 def reorder(inputs, options, out_dir, work, notes):
-    return _each(inputs, options, out_dir, " (reordered)", lambda d: d.select(parse_pages(str(options.get("order") or ""), d.page_count)))
+    def change(doc):
+        # Pages not mentioned keep their order after the ones that were ("3" → 3, 1, 2, 4...).
+        first = parse_pages(str(options.get("order") or ""), doc.page_count)
+        doc.select(first + [i for i in range(doc.page_count) if i not in first])
+
+    return _each(inputs, options, out_dir, " (reordered)", change)
 
 
 def rotate(inputs, options, out_dir, work, notes):

@@ -24,7 +24,7 @@ The app then works on Wi-Fi or mobile data. For local testing you can still poin
 .
 ├── detail.md            what KonPDF is, every feature, architecture, build plan
 ├── engine/              Python conversion engine (FastAPI)
-│   ├── model.py         NW, the assistant (core tier + optional language model)
+│   ├── model.py         NW, the assistant (built in: no API key, no download)
 │   ├── app/
 │   │   ├── main.py      HTTP API and friendly error handling
 │   │   ├── errors.py    error catalogue in 7 languages (no status codes for people)
@@ -68,8 +68,6 @@ npm run android
 
 The emulator talks to the engine at `10.0.2.2:8000`. On a phone, set the address in **Settings → Converter engine**.
 
-**Optional: give NW a language model.** Set `NW_LLM_URL`, `NW_LLM_MODEL` and `NW_LLM_KEY` on the engine to use any OpenAI-compatible chat API (Groq's free tier works well). Step by step: **[docs/nw-language-model.md](docs/nw-language-model.md)**. Without them, NW's core tier answers on its own.
-
 ## Engine settings
 
 | Variable | Default | Meaning |
@@ -82,5 +80,3 @@ The emulator talks to the engine at `10.0.2.2:8000`. On a phone, set the address
 | `KON_MAX_PARALLEL` | 2 | Jobs running at once |
 | `KON_RATE_LIMIT` | 120 | Requests per minute per IP (0 = off) |
 | `KON_SOFFICE` | auto | Path to LibreOffice |
-| `NW_LLM_URL`, `NW_LLM_MODEL`, `NW_LLM_KEY` | – | Optional language model for NW ([guide](docs/nw-language-model.md)) |
-| `NW_LLM_TIMEOUT` | 12 | Seconds before NW falls back to its core tier |
