@@ -63,7 +63,8 @@ export function Segmented<T extends string>({
             {option.icon ? (
               <Icon name={option.icon} size={17} color={fg} />
             ) : null}
-            <AppText variant="bodyStrong" color={fg}>
+            {/* One line: on some phones the selected label was cut to its first word. */}
+            <AppText variant="bodyStrong" color={fg} numberOfLines={1}>
               {option.label}
             </AppText>
           </Pressable>

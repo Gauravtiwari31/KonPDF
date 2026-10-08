@@ -21,9 +21,16 @@ import { scan } from '../services/scan';
 import { palette, useTheme } from '../theme';
 import { formatBytes } from '../utils/format';
 
-const defaultName = (pdf?: LocalFile | null) =>
-  pdf?.name.replace(/\.pdf$/i, '') ??
-  `Scan ${new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '.')}`;
+const pad = (n: number) => String(n).padStart(2, '0');
+
+/** "Scan 2026-10-08 23.17", in the phone's own time (like the scanner's names). */
+const defaultName = (pdf?: LocalFile | null) => {
+  if (pdf) {
+    return pdf.name.replace(/\.pdf$/i, '');
+  }
+  const d = new Date();
+  return `Scan ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}.${pad(d.getMinutes())}`;
+};
 
 /**
  * Pages just scanned (or picked as photos): put them in order, drop or add

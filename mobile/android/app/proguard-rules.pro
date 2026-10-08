@@ -12,3 +12,13 @@
 # llama.rn (Developer Mode's AI reader): its C++ code calls back into these
 # Java classes by name over JNI, so R8 must neither remove nor rename them.
 -keep class com.rnllama.** { *; }
+
+# Google ML Kit (Scan tab: document scanner, text reader). ML Kit finds its
+# parts at runtime through a component registry; R8 strips or merges pieces it
+# can't see being used, and GmsDocumentScanning.getClient / TextRecognition
+# .getClient then fail with a NullPointerException deep inside ML Kit (seen on
+# a TECNO LJ8, Android 16). Keep ML Kit and the registry intact.
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_** { *; }
+-keep class com.google.firebase.components.** { *; }
+-keep class com.google.android.odml.image.** { *; }

@@ -11,6 +11,7 @@ import android.graphics.Rect
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import com.facebook.react.bridge.ActivityEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -90,20 +91,28 @@ class ScanModule(reactContext: ReactApplicationContext) :
             .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
             .build()
     pendingScan = promise
-    GmsDocumentScanning.getClient(options)
-        .getStartScanIntent(activity)
-        .addOnSuccessListener { sender ->
-          try {
-            activity.startIntentSenderForResult(sender, REQUEST_SCAN, null, 0, 0, 0)
-          } catch (e: Exception) {
-            pendingScan = null
-            promise.reject(ERROR_SCANNER_UNAVAILABLE, e.message ?: "The scanner didn't open", e)
+    try {
+      GmsDocumentScanning.getClient(options)
+          .getStartScanIntent(activity)
+          .addOnSuccessListener { sender ->
+            try {
+              activity.startIntentSenderForResult(sender, REQUEST_SCAN, null, 0, 0, 0)
+            } catch (e: Throwable) {
+              Log.e(TAG, "Scanner didn't open", e)
+              pendingScan = null
+              promise.reject(ERROR_SCANNER_UNAVAILABLE, e.message ?: "The scanner didn't open", e)
+            }
           }
-        }
-        .addOnFailureListener { e ->
-          pendingScan = null
-          promise.reject(ERROR_SCANNER_UNAVAILABLE, e.message ?: "The scanner isn't available", e)
-        }
+          .addOnFailureListener { e ->
+            Log.e(TAG, "Scanner unavailable", e)
+            pendingScan = null
+            promise.reject(ERROR_SCANNER_UNAVAILABLE, e.message ?: "The scanner isn't available", e)
+          }
+    } catch (e: Throwable) {
+      Log.e(TAG, "Scanner failed to start", e)
+      pendingScan = null
+      promise.reject(ERROR_SCANNER_UNAVAILABLE, e.message ?: "The scanner isn't available", e)
+    }
   }
 
   override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
@@ -124,7 +133,8 @@ class ScanModule(reactContext: ReactApplicationContext) :
         }
         val pdf = result.pdf?.let { copyIn(it.uri, "scans", "Scan $stamp.pdf", "application/pdf") }
         promise.resolve(JSONObject().put("pages", pages).put("pdf", pdf ?: JSONObject.NULL).toString())
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
+        Log.e(TAG, "Couldn't keep the scan", e)
         promise.reject(ERROR_FAILED, e.message ?: "Couldn't keep the scan", e)
       }
     }
@@ -136,10 +146,11 @@ class ScanModule(reactContext: ReactApplicationContext) :
 
   override fun recognizeText(path: String, script: String, promise: Promise) {
     io.execute {
-      val recognizer =
-          if (script == "devanagari") TextRecognition.getClient(DevanagariTextRecognizerOptions.Builder().build())
-          else TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+      var recognizer: TextRecognizer? = null
       try {
+        recognizer =
+            if (script == "devanagari") TextRecognition.getClient(DevanagariTextRecognizerOptions.Builder().build())
+            else TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         ensureInstalled(recognizer)
         val image = InputImage.fromFilePath(reactApplicationContext, Uri.fromFile(File(path)))
         val text = Tasks.await(recognizer.process(image), 2, TimeUnit.MINUTES)
@@ -150,8 +161,7 @@ class ScanModule(reactContext: ReactApplicationContext) :
             lines.put(
                 JSONObject()
                     .put("text", line.text)
-                    .put("box", box(line.boundingBox))
-                    .put("confidence", line.confidence.toDouble()))
+                    .put("box", box(line.boundingBox)))
           }
           blocks.put(JSONObject().put("text", block.text).put("box", box(block.boundingBox)).put("lines", lines))
         }
@@ -162,7 +172,8 @@ class ScanModule(reactContext: ReactApplicationContext) :
                 .put("height", image.height)
                 .put("blocks", blocks)
                 .toString())
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
+        Log.e(TAG, "Text reader failed", e)
         val cause = (e.cause as? MlKitException) ?: (e as? MlKitException)
         if (cause?.errorCode == MlKitException.UNAVAILABLE) {
           promise.reject(ERROR_READER_UNAVAILABLE, cause.message ?: "The text reader isn't ready yet", e)
@@ -170,7 +181,7 @@ class ScanModule(reactContext: ReactApplicationContext) :
           promise.reject(ERROR_FAILED, e.message ?: "Couldn't read the text", e)
         }
       } finally {
-        recognizer.close()
+        runCatching { recognizer?.close() }
       }
     }
   }
@@ -201,7 +212,8 @@ class ScanModule(reactContext: ReactApplicationContext) :
         openPdf(path).use { promise.resolve(it.pageCount.toDouble()) }
       } catch (e: SecurityException) {
         promise.reject(ERROR_PDF_LOCKED, "This PDF has a password", e)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
+        Log.e(TAG, "Couldn't open the PDF", e)
         promise.reject(ERROR_UNREADABLE, e.message ?: "Couldn't open the PDF", e)
       }
     }
@@ -229,7 +241,8 @@ class ScanModule(reactContext: ReactApplicationContext) :
         }
       } catch (e: SecurityException) {
         promise.reject(ERROR_PDF_LOCKED, "This PDF has a password", e)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
+        Log.e(TAG, "Couldn't read the page", e)
         promise.reject(ERROR_UNREADABLE, e.message ?: "Couldn't read the page", e)
       }
     }
@@ -249,7 +262,8 @@ class ScanModule(reactContext: ReactApplicationContext) :
         promise.resolve(CacheFiles.describe(target, mime = "image/jpeg").toString())
       } catch (e: OutOfMemoryError) {
         promise.reject(ERROR_UNREADABLE, "This picture is too big", e)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
+        Log.e(TAG, "Couldn't read the picture", e)
         promise.reject(ERROR_UNREADABLE, e.message ?: "Couldn't read the picture", e)
       }
     }
@@ -272,7 +286,8 @@ class ScanModule(reactContext: ReactApplicationContext) :
         promise.resolve(CacheFiles.describe(target, mime = "application/pdf").toString())
       } catch (e: OutOfMemoryError) {
         promise.reject(ERROR_FAILED, "Too many pages at once", e)
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
+        Log.e(TAG, "Couldn't make the PDF", e)
         promise.reject(ERROR_FAILED, e.message ?: "Couldn't make the PDF", e)
       }
     }
@@ -325,6 +340,7 @@ class ScanModule(reactContext: ReactApplicationContext) :
 
   companion object {
     const val NAME = "KonScan"
+    private const val TAG = "KonScan"
     private const val REQUEST_SCAN = 5130
     /** Pages made into a PDF on the phone: sharp enough to print, small enough to send. */
     private const val PDF_MAX_SIDE = 2200
