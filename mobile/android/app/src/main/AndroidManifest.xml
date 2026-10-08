@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Short haptic tick when a conversion finishes. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Developer Mode: "download on Wi-Fi only" needs to know the network type. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
       android:name=".MainApplication"
@@ -51,6 +53,10 @@
             <data android:mimeType="application/pdf" />
         </intent-filter>
       </activity>
+      <!-- The text reader's Latin and Devanagari models come from Google Play services. -->
+      <meta-data
+        android:name="com.google.mlkit.vision.DEPENDENCIES"
+        android:value="ocr,ocr_devanagari" />
       <!-- Hands KonPDF's own cached files to other apps for sharing and opening. -->
       <provider
         android:name="androidx.core.content.FileProvider"

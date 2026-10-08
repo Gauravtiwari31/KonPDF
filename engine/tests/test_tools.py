@@ -274,3 +274,27 @@ def test_reorder_moves_named_pages_to_the_front(samples, workdirs):
     with pymupdf.open(path) as doc:
         assert doc.page_count == 3
         assert ["Chapter 3" in doc[0].get_text(), "Chapter 1" in doc[1].get_text(), "Chapter 2" in doc[2].get_text()] == [True, True, True]
+
+
+def test_searchable_pdf_from_scanned_pages(samples, workdirs):
+    ocr = [
+        {"width": 1200, "height": 900, "lines": [{"text": "Invoice 4521", "box": [100, 80, 520, 130]}, {"text": "Total 1,250.00", "box": [100, 700, 600, 760]}]},
+        {"width": 800, "height": 600, "lines": [{"text": "नमस्ते दुनिया", "box": [50, 50, 400, 100]}]},
+    ]
+    (path,) = pdf_tool(samples, workdirs, "searchable", ("jpg", "webp"), ocr=ocr, name="Scan 1.pdf")
+    assert path.name == "Scan 1 (searchable).pdf"
+    with pymupdf.open(path) as doc:
+        assert doc.page_count == 2
+        assert "Invoice 4521" in doc[0].get_text()
+        assert doc[0].search_for("Total")
+        # The page still shows the photo; the text itself is invisible.
+        assert doc[0].get_images()
+
+
+def test_searchable_pdf_needs_one_reading_per_page(samples, workdirs):
+    with pytest.raises(KonError) as e:
+        pdf_tool(samples, workdirs, "searchable", ("jpg", "jpg"), ocr=[{"width": 10, "height": 10, "lines": []}])
+    assert e.value.code == "INVALID_OPTIONS"
+    with pytest.raises(KonError) as e:
+        pdf_tool(samples, workdirs, "searchable", ("pdf",), ocr=[{"lines": []}])
+    assert e.value.code == "WRONG_KIND"

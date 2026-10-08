@@ -67,6 +67,11 @@ def test_pdf_tool_route_and_plan(client, samples):
     assert r.status_code == 200, r.text
     assert r.json()["files"][0]["name"].endswith(".pdf")
 
+    ocr = [{"width": 1200, "height": 900, "lines": [{"text": "Hello scan", "box": [10, 10, 300, 60]}]}]
+    r = client.post("/api/pdf/searchable", files=upload(samples["jpg"]), data={"options": json.dumps({"ocr": ocr, "name": "Scan"})})
+    assert r.status_code == 200, r.text
+    assert r.json()["files"][0]["name"] == "Scan (searchable).pdf"
+
 
 def test_nw_chat(client):
     r = client.post("/api/nw/chat", json={"message": "isko 100kb se kam karo", "files": [{"name": "a.jpg", "mime": "image/jpeg", "size": 1}]})

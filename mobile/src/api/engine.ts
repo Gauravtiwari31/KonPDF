@@ -95,6 +95,8 @@ export interface NwReply {
   suggestions: string[];
   /** "core", or "llm" when a local model answered. */
   engine: string;
+  /** A screen of the app that does this on the phone: "scan" or "read_text". */
+  open?: string | null;
 }
 
 export type JobProgress =(phase: 'upload' | 'work' | 'download', ratio: number) => void;

@@ -13,6 +13,8 @@ export interface HistoryEntry {
   inputBytes: number;
   outputs: LocalFile[];
   notes: string[];
+  /** Made in the Scan tab: a scanned document, or text read from pages. */
+  kind?: 'scan' | 'text';
 }
 
 export interface HistoryState {

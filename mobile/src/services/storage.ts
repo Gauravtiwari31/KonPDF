@@ -38,4 +38,6 @@ export const STORAGE_KEYS = {
   history: 'konpdf.history.v1',
   /** Set once the welcome screen has been seen. */
   onboarded: 'konpdf.onboarded.v1',
+  /** Set once the Developer Mode introduction has been shown. */
+  devModeIntro: 'konpdf.devModeIntro.v1',
 } as const;

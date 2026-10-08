@@ -3,4 +3,7 @@
 <paths>
     <cache-path name="picked" path="picked/" />
     <cache-path name="results" path="results/" />
+    <cache-path name="scans" path="scans/" />
+    <cache-path name="pages" path="pages/" />
+    <cache-path name="text" path="text/" />
 </paths>

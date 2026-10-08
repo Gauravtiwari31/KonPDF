@@ -32,7 +32,7 @@ export function useJob() {
   const run = useCallback(
     async (
       inputs: LocalFile[],
-      meta: { title: string; family: Family },
+      meta: { title: string; family: Family; kind?: 'scan' | 'text' },
       work: (onProgress: JobProgress) => Promise<JobResult>,
     ) => {
       if (running.current) {
@@ -60,6 +60,7 @@ export function useJob() {
             id,
             title: meta.title,
             family: meta.family,
+            kind: meta.kind,
             createdAt: Date.now(),
             inputCount: inputs.length,
             inputBytes: inputs.reduce((sum, f) => sum + f.size, 0),

@@ -5,24 +5,59 @@ import {
   Theme as NavTheme,
   useNavigationContainerRef,
 } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useMemo } from 'react';
+import { DevModeIntro } from '../components/DevModeIntro';
+import { TabBar } from '../components/TabBar';
 import { useSharedFiles } from '../hooks/useSharedFiles';
 import { ConvertScreen } from '../screens/ConvertScreen';
+import { DeveloperModeScreen } from '../screens/DeveloperModeScreen';
 import { EnhanceScreen } from '../screens/EnhanceScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { NwScreen } from '../screens/NwScreen';
 import { PdfToolsScreen } from '../screens/PdfToolsScreen';
+import { ReadTextScreen } from '../screens/ReadTextScreen';
 import { ResizeScreen } from '../screens/ResizeScreen';
 import { ResultScreen } from '../screens/ResultScreen';
+import { ScanResultScreen } from '../screens/ScanResultScreen';
+import { ScanScreen } from '../screens/ScanScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { WelcomeScreen } from '../screens/WelcomeScreen';
 import { useTheme } from '../theme';
-import { RootStackParamList } from './types';
+import { RootStackParamList, TabParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tabs = createBottomTabNavigator<TabParamList>();
+
+const renderTabBar = (props: React.ComponentProps<typeof TabBar>) => (
+  <TabBar {...props} />
+);
+
+/** Scan · Convert · (Ask NW) · History. Convert is where the app opens. */
+function MainTabs() {
+  const theme = useTheme();
+  return (
+    <>
+      <Tabs.Navigator
+        initialRouteName="Home"
+        tabBar={renderTabBar}
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: theme.colors.background },
+          animation: 'shift',
+        }}
+      >
+        <Tabs.Screen name="Scan" component={ScanScreen} />
+        <Tabs.Screen name="Home" component={HomeScreen} />
+        <Tabs.Screen name="History" component={HistoryScreen} />
+      </Tabs.Navigator>
+      <DevModeIntro />
+    </>
+  );
+}
 
 export function RootNavigator({
   boot,
@@ -67,7 +102,7 @@ export function RootNavigator({
           contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="Convert" component={ConvertScreen} />
         <Stack.Screen name="Resize" component={ResizeScreen} />
         <Stack.Screen name="Enhance" component={EnhanceScreen} />
@@ -82,8 +117,10 @@ export function RootNavigator({
           component={ResultScreen}
           options={{ animation: 'fade_from_bottom' }}
         />
-        <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="ScanResult" component={ScanResultScreen} />
+        <Stack.Screen name="ReadText" component={ReadTextScreen} />
+        <Stack.Screen name="DeveloperMode" component={DeveloperModeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

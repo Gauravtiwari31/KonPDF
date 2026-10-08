@@ -8,3 +8,7 @@
 # "com.swmansion.rnscreens"; obfuscated names would slip past it and bring the
 # restore crash back. Keep the names (unused classes can still be removed).
 -keepnames class com.swmansion.rnscreens.** { *; }
+
+# llama.rn (Developer Mode's AI reader): its C++ code calls back into these
+# Java classes by name over JNI, so R8 must neither remove nor rename them.
+-keep class com.rnllama.** { *; }

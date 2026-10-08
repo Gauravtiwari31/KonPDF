@@ -1,8 +1,8 @@
 {
   "name": "konpdf",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
-  "description": "KonPDF \u2014 a React Native (Android) app that converts images, PDFs, documents and sheets, resizes and enhances images, with the NW assistant",
+  "description": "KonPDF — a React Native (Android) app that converts images, PDFs, documents and sheets, resizes and enhances images, with the NW assistant",
   "author": "Gaurav Tiwari",
   "scripts": {
     "android": "react-native run-android",
@@ -11,14 +11,17 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "test": "jest"
+    "test": "jest",
+    "llama:libs": "node node_modules/llama.rn/install/download-native-artifacts.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-navigation/bottom-tabs": "^7.20.0",
     "@react-navigation/native": "^7.5.0",
     "@react-navigation/native-stack": "^7.20.0",
     "@reduxjs/toolkit": "^2.13.0",
     "axios": "^1.20.0",
+    "llama.rn": "0.13.0-rc.7",
     "react": "19.2.3",
     "react-native": "0.87.1",
     "react-native-safe-area-context": "^5.10.1",

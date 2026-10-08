@@ -7,9 +7,12 @@ import {
 } from '../features/history/historySlice';
 import {
   preferencesHydrated,
+  setDeveloperMode,
   setLanguage,
   setQuality,
+  setReader,
   setThemeMode,
+  setWifiOnly,
 } from '../features/preferences/preferencesSlice';
 import { resolveLang } from '../i18n/languages';
 import { files } from '../services/files';
@@ -26,7 +29,14 @@ const startListening = listener.startListening.withTypes<
 
 // Persist device preferences whenever they change.
 startListening({
-  matcher: isAnyOf(setThemeMode, setLanguage, setQuality),
+  matcher: isAnyOf(
+    setThemeMode,
+    setLanguage,
+    setQuality,
+    setDeveloperMode,
+    setWifiOnly,
+    setReader,
+  ),
   effect: async (_action, api) => {
     await storage.set(STORAGE_KEYS.preferences, api.getState().preferences);
   },

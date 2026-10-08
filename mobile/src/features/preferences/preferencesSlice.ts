@@ -9,12 +9,21 @@ export interface PreferencesState {
   language: LangPreference;
   /** Default quality for JPG/WEBP output, 1–100. */
   quality: number;
+  /** Developer Mode: lets the Scan tab use the on-phone AI reader. */
+  developerMode: boolean;
+  /** Download the AI reader only on Wi-Fi (unmetered networks). */
+  wifiOnly: boolean;
+  /** Reader the Read text screen starts with. */
+  reader: 'standard' | 'ai';
 }
 
 export const initialPreferences: PreferencesState = {
   themeMode: 'system',
   language: 'auto',
   quality: 88,
+  developerMode: false,
+  wifiOnly: true,
+  reader: 'standard',
 };
 
 /** Device-level preferences, persisted by the listener in store/listeners.ts. */
@@ -37,9 +46,28 @@ const preferencesSlice = createSlice({
     setQuality(state, action: PayloadAction<number>) {
       state.quality = Math.round(Math.min(100, Math.max(1, action.payload)));
     },
+    setDeveloperMode(state, action: PayloadAction<boolean>) {
+      state.developerMode = action.payload;
+      if (!action.payload) {
+        state.reader = 'standard';
+      }
+    },
+    setWifiOnly(state, action: PayloadAction<boolean>) {
+      state.wifiOnly = action.payload;
+    },
+    setReader(state, action: PayloadAction<'standard' | 'ai'>) {
+      state.reader = action.payload;
+    },
   },
 });
 
-export const { preferencesHydrated, setThemeMode, setLanguage, setQuality } =
-  preferencesSlice.actions;
+export const {
+  preferencesHydrated,
+  setThemeMode,
+  setLanguage,
+  setQuality,
+  setDeveloperMode,
+  setWifiOnly,
+  setReader,
+} = preferencesSlice.actions;
 export default preferencesSlice.reducer;

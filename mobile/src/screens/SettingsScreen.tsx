@@ -5,8 +5,10 @@ import { ServerButton } from '../components/ServerSettings';
 import {
   AppText,
   BrutalBox,
+  BrutalPressable,
   Button,
   Chip,
+  Icon,
   Screen,
   SectionLabel,
   Segmented,
@@ -23,6 +25,7 @@ import {
 import { deviceLang, LANGUAGES, LangPreference } from '../i18n/languages';
 import type { ScreenProps } from '../navigation/types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useTheme } from '../theme';
 
 const QUALITY_PRESETS = [
   { value: 95, label: 'Best' },
@@ -31,7 +34,8 @@ const QUALITY_PRESETS = [
   { value: 65, label: 'Smallest' },
 ];
 
-export function SettingsScreen(_: ScreenProps<'Settings'>) {
+export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
+  const t = useTheme();
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const prefs = useAppSelector(state => state.preferences);
@@ -105,12 +109,31 @@ export function SettingsScreen(_: ScreenProps<'Settings'>) {
           <ServerButton />
         </View>
 
+        <SectionLabel style={styles.section}>Developer Mode</SectionLabel>
+        <BrutalPressable
+          offset={3}
+          onPress={() => navigation.navigate('DeveloperMode')}
+          accessibilityLabel="Developer Mode"
+          contentStyle={styles.devRow}
+        >
+          <Icon name="chip" size={22} color={t.colors.text} />
+          <View style={styles.flex}>
+            <AppText variant="bodyStrong">
+              {prefs.developerMode ? 'On' : 'Off'} · AI reader
+            </AppText>
+            <AppText variant="caption" color="textMuted">
+              Read tables and messy pages with an AI that runs on your phone
+            </AppText>
+          </View>
+          <Icon name="chevronRight" size={20} color={t.colors.text} />
+        </BrutalPressable>
+
         <SectionLabel style={styles.section}>Privacy</SectionLabel>
         <BrutalBox offset={3} contentStyle={styles.card}>
           <AppText>
-            Files are sent to the converter only to process them, and are
-            deleted from it after 30 minutes. History stays on this phone. No
-            account, no tracking.
+            Scanning and reading text happen on this phone. Files are sent to
+            the converter only to process them, and are deleted from it after
+            30 minutes. History stays on this phone. No account, no tracking.
           </AppText>
         </BrutalBox>
         <Button
@@ -140,4 +163,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row' },
   card: { padding: 14 },
   spaced: { marginTop: 14 },
+  devRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
+  flex: { flex: 1 },
 });

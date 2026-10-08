@@ -120,11 +120,32 @@ def test_asks_for_missing_details():
     assert "pages" in nw.reply("delete some pages", "en", PDF)["reply"].lower()
 
 
-@pytest.mark.parametrize("message", ["convert my video to mp3", "can you extract text from image (ocr)?", "make a song louder"])
+@pytest.mark.parametrize("message", ["convert my video to mp3", "make a song louder"])
 def test_out_of_scope_is_declined_kindly(message):
     reply = NW().reply(message, "en", [])
     assert reply["plan"] is None
     assert "KonPDF" in reply["reply"]
+
+
+@pytest.mark.parametrize(
+    "message, files, screen",
+    [
+        ("can you extract text from image (ocr)?", [], "read_text"),
+        ("text nikalo is photo se", IMG, "read_text"),
+        ("make a searchable pdf", PDF, "read_text"),
+        ("scan a document", [], "scan"),
+        ("mujhe document scan karna hai", [], "scan"),
+    ],
+)
+def test_on_phone_features_point_to_their_screen(message, files, screen):
+    reply = NW().reply(message, "en", files)
+    assert reply["plan"] is None and reply["open"] == screen
+
+
+def test_text_from_a_pdf_is_still_a_conversion():
+    reply = NW().reply("extract text from this pdf", "en", PDF)
+    assert reply["open"] is None
+    assert reply["plan"]["steps"][0]["params"]["to"] == "txt"
 
 
 def test_replies_in_the_users_language():

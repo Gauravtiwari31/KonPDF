@@ -144,6 +144,16 @@ android {
             }
         }
     }
+    packagingOptions {
+        jniLibs {
+            // Compress native code in the APK: llama.rn (Developer Mode's AI
+            // reader) ships one build per CPU generation, ~12 MB each unpacked.
+            useLegacyPackaging true
+            // Its Qualcomm NPU/GPU build needs extra system libraries we don't
+            // request; phones fall back to the fastest plain-CPU build instead.
+            excludes += ["**/librnllama_v8_2_dotprod_i8mm_hexagon_opencl.so", "**/librnllama_jni_v8_2_dotprod_i8mm_hexagon_opencl.so"]
+        }
+    }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
@@ -162,9 +172,24 @@ android {
     }
 }
 
+// llama.rn copies its Qualcomm NPU libraries into the app's assets; KonPDF
+// doesn't use the NPU (see packagingOptions), so skip the copy.
+tasks.configureEach { task ->
+    if (task.name == "syncRNLlamaHtpAssets") {
+        task.enabled = false
+    }
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // Scan tab: Google's document scanner and text reader. Both run through
+    // Google Play services, which download their models, so the APK stays small.
+    implementation("com.google.android.gms:play-services-base:18.11.0")
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition-devanagari:16.0.1")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

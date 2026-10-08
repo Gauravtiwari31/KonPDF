@@ -5,7 +5,7 @@ This document defines what KonPDF is, what it does, how it is built and in what 
 | | |
 |---|---|
 | **What** | An Android app that converts images, PDFs, documents and spreadsheets, resizes and enhances images, and has a built-in offline assistant named **NW** |
-| **Not included** | Video, audio and OCR (text recognition from images). These are out of scope on purpose. |
+| **Not included** | Video and audio, on purpose. Reading text from images (OCR) happens only on the phone, in the Scan tab ([section 18](#18-scan-tab-and-developer-mode)), never on the engine. |
 | **Platforms** | **Android first** (React Native app) + a Python conversion engine (FastAPI). iOS later. |
 | **Look** | Same neo-brutalist UI as DoAll, with a new colour palette ("Ink & Volt") |
 
@@ -30,6 +30,7 @@ This document defines what KonPDF is, what it does, how it is built and in what 
 15. [Testing](#15-testing)
 16. [Build plan](#16-build-plan)
 17. [Trade-offs and limits](#17-trade-offs-and-limits)
+18. [Scan tab and Developer Mode](#18-scan-tab-and-developer-mode)
 
 ---
 
@@ -75,7 +76,7 @@ You can also just type what you want. **NW**, the built-in assistant, understand
 | **PPTX** | ✅ via PDF* | ✅* | – | ✅ slide text | – |
 | **Sheets** | – | ✅ table layout | ✅ as a table | ✅ HTML / MD table | ✅ |
 
-PDF → DOCX copies the text, images and page order. It does not recognise text inside scanned images, because KonPDF has no OCR.
+PDF → DOCX copies the text, images and page order. The engine does not recognise text inside scanned images; for that, the phone reads the pages (Scan tab → Read text, [section 18](#18-scan-tab-and-developer-mode)).
 
 ### Conversion options
 
@@ -127,7 +128,7 @@ PDFs get a matching **compress to target size** tool ([section 5](#5-pdf-tools))
 | Preset | What it does |
 |---|---|
 | **Auto enhance** | Auto levels (contrast stretch), mild sharpen, slight saturation and brightness correction. The default "make it look better" button. |
-| **Document** | Greyscale, whitens the paper background and darkens ink: good for photos of pages (no OCR, just a cleaner image) |
+| **Document** | Greyscale, whitens the paper background and darkens ink: good for photos of pages (a cleaner image; to get the text out, use Read text) |
 | **Black & white document** | Adaptive threshold for crisp black-on-white pages |
 | **Low light** | Lifts shadows and brightness, reduces noise |
 | **Portrait** | Soft smoothing, warm tone, gentle sharpen |
@@ -193,7 +194,7 @@ The enhance screen shows a fast low-resolution **live preview** and a **before/a
 - **Polite and casual requests:** "can you make this a pdf?", "i need this as a png", "pls convert to jpg" are requests, not questions. Real how-to questions ("are my files private?") still get answers.
 - **Natural pages and passwords:** "first page", "last page", "first 3 pages", "get rid of page 2", "password laga do 1234", "lock it with 98765".
 - **Knows the files:** a plan always fits what's attached (rotate is a photo job for photos and a PDF job for PDFs); attaching files after asking re-plans for them; "it's already 80 KB" when a file is already under the limit; "it's already a JPG" when there's nothing to convert; "merging needs two or more files".
-- **Honest limits:** background removal, video, audio and OCR are declined kindly with what it can do instead; formats it can read but not write (HEIC, SVG, PPTX) get a suggestion.
+- **Honest limits:** background removal, video and audio are declined kindly with what it can do instead; scanning and reading text get a button to the Scan tab; formats it can read but not write (HEIC, SVG, PPTX) get a suggestion.
 - **Never a dead end:** if a request is unclear, NW says what it can do with the attached file and offers matching suggestion buttons.
 - **Tested on real phrasing:** about 200 everyday requests in all seven languages (with typos and Hinglish) are turned into plans and run on real files in the test suite (`engine/tests/test_nw_conversations.py`).
 
@@ -381,7 +382,7 @@ engine/
 | POST | `/api/convert` | `files[]`, `target`, `options` (JSON) |
 | POST | `/api/resize` | `files[]`, resize options |
 | POST | `/api/enhance` | `files[]`, preset / filter / sliders; `preview=true` returns a small fast JPEG |
-| POST | `/api/pdf/{tool}` | merge, split, extract, delete, rotate, reorder, compress, protect, unlock, watermark, page-numbers |
+| POST | `/api/pdf/{tool}` | merge, split, extract, delete, rotate, reorder, compress, protect, unlock, watermark, page-numbers, searchable (page pictures + the text the phone read → searchable PDF) |
 | POST | `/api/run` | Runs a plan (list of steps) over the uploaded files |
 | GET | `/api/files/{job}/{name}` | Download a result |
 | DELETE | `/api/files/{job}` | Delete a job's files now |
@@ -407,11 +408,12 @@ Every response is either `{ "ok": true, ... }` or the friendly error shape from 
 
 ### Screens
 
-`Splash → Welcome (first run only) → Home → Tool / Resizer / Enhance / PDF tools / NW / History / Settings → Result`
+`Splash → Welcome (first run only) → Tabs (Scan · Convert · Ask NW · History) → Tool / Resizer / Enhance / PDF tools / NW / Scan result / Read text / Settings / Developer Mode → Result`
 
 | Screen | Contents |
 |---|---|
-| **Home** | Greeting, **"Ask NW"** bar at the top, tool grid grouped by family (Images, PDF, Documents, Sheets, Resize, Enhance), recent results strip |
+| **Scan** (tab) | Scan a document, Read text, Photos → pages, AI reader status, recent scans ([section 18](#18-scan-tab-and-developer-mode)) |
+| **Home** (Convert tab) | Greeting, **"Ask NW"** bar at the top, tool grid grouped by family (Images, PDF, Documents, Sheets, Resize, Enhance), recent results strip |
 | **Tool** | Picked files (with info), target format chips, options sheet, big **Convert** button, upload/convert progress |
 | **Resizer** | Mode segmented control (Pixels / % / Print / Size / Preset), preset chips, live "about 48 KB, 413 × 531 px" estimate |
 | **Enhance** | Preview with before/after slider, presets row, filters row, sliders sheet |
@@ -419,7 +421,8 @@ Every response is either `{ "ok": true, ... }` or the friendly error shape from 
 | **NW** | Chat with plan cards (**Run** / **Edit** / **Save as recipe**), suggestion chips, language-aware |
 | **Result** | Output files with size change ("2.4 MB → 48 KB, −98 %"), **Open**, **Share**, **Save**, **Do more** |
 | **History** | Past results, recipes |
-| **Settings** | Theme, language, default quality, server address, clear history, about |
+| **Settings** | Theme, language, default quality, server address, Developer Mode, clear history, about |
+| **Developer Mode** | On/off, phone check, AI reader download / pause / resume / delete, Wi-Fi only |
 
 ### State (Redux Toolkit)
 
@@ -478,7 +481,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | NW | Language detection for each language, intent and parameter extraction (sizes, dimensions, presets, ranges), plan validation, replies in the right language, unknown requests |
 | Errors | Every error code has a message in every language; unknown routes, bad input and crashes never leak status codes or stack traces |
 | API | End-to-end uploads and downloads through FastAPI's TestClient |
-| Mobile | Error mapper (no status codes, every language), format matching, size formatting, server address handling |
+| Mobile | Error mapper (no status codes, every language), format matching, size formatting, server address handling, Markdown tables → CSV, Developer Mode phone check and download states, page text joining |
 
 ---
 
@@ -495,12 +498,14 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 5 | **Friendly errors in the app:** engine errors shown as they come, app-only problems (offline, server waking, no app to open a file) in all 7 languages, "Ask NW" on every error card | Done |
 | 6 | **Engine:** format detection, converters (images, PDF, documents, sheets, LibreOffice bridge), resizer, enhance, PDF tools, plan runner, friendly error catalogue in 7 languages, Dockerfile | Done |
 | 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) | Done |
-| 8 | **Tests:** engine 815 (pytest); mobile 19 (Jest) + type-check + lint | Done |
+| 8 | **Tests:** engine 822 (pytest); mobile 33 (Jest) + type-check + lint | Done |
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
 | 12 | Hosting the engine on Render: `render.yaml` blueprint + [step-by-step guide](docs/deploy-render.md) | Ready to deploy |
 | 12a | **v0.0.1** test release on GitHub with the APK; gear icon for Settings; text boxes stay above the keyboard | Done |
+| 12b | **v0.0.2 – v0.0.4:** NW chat fixes, smarter built-in NW (no API key), hosted engine built in | Done |
+| 12c | **v0.0.5 (pre-release):** bottom tab bar, Scan tab (document scanner, photos → PDF), Read text on the phone, searchable PDF, Developer Mode with the on-phone AI reader (Qwen3-VL 2B) | Done |
 | 13 | Translating the app's own screen text (NW and errors are already multilingual) | Planned |
 | 14 | iOS | Later |
 
@@ -517,7 +522,7 @@ cd engine
 python -m venv .venv
 .venv/Scripts/pip install -r requirements-dev.txt        # macOS/Linux: .venv/bin/pip
 .venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-.venv/Scripts/python -m pytest                            # 815 tests
+.venv/Scripts/python -m pytest                            # 822 tests
 
 # Android app (Node 22, JDK 17, Android SDK)
 cd mobile
@@ -533,8 +538,58 @@ On a real phone, open **Settings → Converter engine** and enter your computer'
 ## 17. Trade-offs and limits
 
 - **Server-side conversion:** good-quality DOCX/PPTX/XLSX conversion needs LibreOffice and Python libraries that can't run on a phone, so conversions happen on the engine. Files are deleted after 30 minutes to keep this private.
-- **No OCR:** PDF → DOCX copies existing text. Text inside scanned images stays an image.
+- **Reading text only on the phone:** PDF → DOCX on the engine copies existing text; text inside scanned images is read on the phone (Scan tab). The standard reader needs Google Play services; the AI reader needs a 64-bit phone with 4 GB+ RAM and a 1.55 GB download.
+- **APK size:** the AI reader's native code (llama.rn, one build per CPU generation) adds to the APK even for people who never turn Developer Mode on. It could move to an on-demand download later.
 - **Pure-Python fallback:** without LibreOffice, DOCX → PDF and sheet → PDF use KonPDF's own layout (PyMuPDF's HTML engine). It keeps text, headings, lists, tables and images, but not every Word detail. The hosted engine includes LibreOffice.
 - **App screen text** is English for now. NW's replies and every error message are already in all 7 languages.
 - **NW is not a trained AI model.** It is a hand-built language engine: instant, free, private and offline-capable, but it only understands the kinds of requests it was built for (file jobs, how-to questions). A real language model was considered and set aside: hosted models need an API key, and running one ourselves needs about 2 GB of memory (a paid server) or a large download on every phone.
 - **Free hosting cold starts:** handled as in DoAll: the app pings `/api/health` on launch and shows "Waking up the converter" instead of an error.
+
+---
+
+## 18. Scan tab and Developer Mode
+
+Added in **v0.0.5** (pre-release). The app now has a bottom bar: **Scan** · **Convert** · **Ask NW** · **History**. Convert is where the app opens; Ask NW opens the chat over everything.
+
+Reading text from images (OCR) is now part of KonPDF, with one firm rule: **it happens on the phone, never on the engine.** Pages are not uploaded to be read.
+
+### Scan tab
+
+| Feature | How it works |
+|---|---|
+| **Scan a document** | Google's ML Kit Document Scanner (through Google Play services): camera, automatic edge detection, crop, rotate, shadow and stain clean-up, many pages in one go, import from the gallery. No camera permission and no extra APK size. |
+| **Your scan** | Pages in a grid: reorder, remove, add more pages, rename. **Save as PDF** is done on the phone (pages stay JPEG inside the PDF, so a page is a few hundred KB). Then **Read the text**, **Compress**, **Enhance** or **Convert pages** with the usual tools. |
+| **Photos → pages** | Photos you already took become pages the same way. Phones without Google Play services (some Huawei phones) get this instead of the camera scanner. |
+| **Read text** | Pick photos, scans or PDFs (up to 30 pages at a time). Copy the text, share or save it as `.txt`, **save as Word** (engine: TXT → DOCX), make a **searchable PDF** (engine: the page pictures plus an invisible text layer at the positions the phone read), or turn tables into **Excel** (AI reader). The text can be edited before saving. |
+
+### Two readers
+
+| | **Standard** (default) | **AI reader** (Developer Mode) |
+|---|---|---|
+| What | Google ML Kit Text Recognition v2, Latin and Devanagari | **Qwen3-VL 2B Instruct** (Apache-2.0), a vision-language model, run by llama.cpp through **llama.rn** |
+| Download | None in the app; Play services fetches a few MB once | One time, **1.55 GB** (model Q4_K_M 1.11 GB + vision part Q8_0 445 MB), Qwen's official GGUF files from Hugging Face, no account or key |
+| Speed | About a second a page | About 20–90 s a page on a mid-range phone |
+| Good at | Clean print, forms, bills; keeps where each line sits (needed for a searchable PDF) | Tables (written as Markdown → Excel), columns, messy or curved pages |
+| Watch out | Weaker on tables and unusual layouts | Can misread or invent a word: the app says "check names and numbers" |
+
+"Qwen2.5-VL-2B" was considered first: it does not exist (Qwen2.5-VL starts at 3B, under a non-commercial licence), so the newer, Apache-licensed Qwen3-VL 2B was chosen.
+
+### Developer Mode
+
+- **Off by default.** A one-time pop-up introduces it the first time someone reaches the tabs (new installs and updates). It says what it is, the download size, and whether this phone can run it.
+- **Settings → Developer Mode** turns it on and manages the model:
+  - **Phone check:** 64-bit processor required; 4 GB RAM minimum, 6 GB or more recommended; about 1.9 GB free storage.
+  - **Download manager:** both files download in parallel into the app's private storage; continues where it stopped (HTTP Range); **Wi-Fi only** by default; confirms before using mobile data; keeps the screen on; every file is checked against its SHA-256 before it is used; **Delete** frees the space.
+- The model loads only while reading (about 2 GB of memory) and is released a minute after the last page. If the phone runs out of memory, a friendly error offers the standard reader.
+- Native code: llama.rn ships one build per CPU generation for 64-bit ARM; the APK carries them compressed. Its Qualcomm NPU/GPU build is left out (it needs extra system libraries). 32-bit phones never load it.
+
+### Native modules
+
+| Module | Kotlin | Does |
+|---|---|---|
+| `KonScan` | `scan/ScanModule.kt` | Scanner, text reader (with Play services module install), PDF page rendering, upright resized copies, pictures → PDF (`JpegPdf.kt`), text files, clipboard |
+| `KonModel` | `model/ModelModule.kt` | Phone check (64-bit, RAM, storage, network), resumable verified downloads, keep screen on |
+
+### NW
+
+NW now sends "scan a document", "scan karo", "extract text from this photo", "make a searchable pdf" and the like (all 7 languages) to the right screen with a button (`open: "scan" | "read_text"` in its reply). "Extract the text" from a PDF or Word file is still a conversion to TXT, which needs no reading.

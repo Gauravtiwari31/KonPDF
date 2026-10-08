@@ -26,6 +26,8 @@ interface Message {
   text: string;
   plan?: NwPlan | null;
   suggestions?: string[];
+  /** A screen that does this on the phone ("scan", "read_text"). */
+  open?: string | null;
   /** NW's greeting: shown until the person sends their first message. */
   intro?: boolean;
 }
@@ -101,6 +103,7 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         text: reply.reply,
         plan: reply.plan,
         suggestions: reply.suggestions,
+        open: reply.open,
         intro,
       },
     ]);
@@ -260,6 +263,18 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
               />
             )}
           </BrutalBox>
+        ) : null}
+        {item.open === 'scan' || item.open === 'read_text' ? (
+          <Button
+            title={item.open === 'scan' ? 'Open the scanner' : 'Read text'}
+            icon={item.open === 'scan' ? 'scan' : 'text'}
+            size="md"
+            onPress={() =>
+              item.open === 'scan'
+                ? navigation.navigate('Main', { screen: 'Scan' })
+                : navigation.navigate('ReadText', { files: attached })
+            }
+          />
         ) : null}
         {item.suggestions?.length ? (
           <View style={styles.suggestions}>

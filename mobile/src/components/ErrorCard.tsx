@@ -13,11 +13,13 @@ export function ErrorCard({
   error,
   onAskNw,
   onRetry,
+  retryLabel = 'Try again',
   style,
 }: {
   error: FriendlyError;
   onAskNw?: () => void;
   onRetry?: () => void;
+  retryLabel?: string;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
@@ -45,7 +47,7 @@ export function ErrorCard({
             >
               <Icon name="refresh" size={16} color={palette.ink} />
               <AppText variant="label" uppercase color={palette.ink}>
-                Try again
+                {retryLabel}
               </AppText>
             </Pressable>
           ) : null}

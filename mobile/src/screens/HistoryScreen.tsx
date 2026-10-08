@@ -10,13 +10,13 @@ import {
   useConfirm,
 } from '../components/ui';
 import { historyCleared } from '../features/history/historySlice';
-import type { ScreenProps } from '../navigation/types';
+import type { TabProps } from '../navigation/types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { familyColors, palette, useTheme } from '../theme';
 import { formatBytes, formatWhen } from '../utils/format';
 
 /** Past results, kept on this phone only. */
-export function HistoryScreen({ navigation }: ScreenProps<'History'>) {
+export function HistoryScreen({ navigation }: TabProps<'History'>) {
   const t = useTheme();
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
@@ -35,7 +35,7 @@ export function HistoryScreen({ navigation }: ScreenProps<'History'>) {
   };
 
   return (
-    <Screen>
+    <Screen edges={['top']}>
       <FlatList
         data={entries}
         keyExtractor={e => e.id}
@@ -43,6 +43,7 @@ export function HistoryScreen({ navigation }: ScreenProps<'History'>) {
         ItemSeparatorComponent={Separator}
         ListHeaderComponent={
           <ScreenHeader
+            back={false}
             kicker="On this phone"
             title="History"
             right={

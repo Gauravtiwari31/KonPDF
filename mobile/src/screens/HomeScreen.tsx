@@ -13,13 +13,13 @@ import {
   SectionLabel,
 } from '../components/ui';
 import { SECTIONS, ToolDef } from '../features/tools/catalog';
-import type { ScreenProps } from '../navigation/types';
+import type { TabProps } from '../navigation/types';
 import { useAppSelector } from '../store/hooks';
 import { familyColors, palette, useTheme } from '../theme';
 import { formatBytes, formatWhen } from '../utils/format';
 
-/** Home: Ask NW, every tool as a sticker tile, and the latest results. */
-export function HomeScreen({ navigation }: ScreenProps<'Home'>) {
+/** The Convert tab: Ask NW, every tool as a sticker tile, and the latest results. */
+export function HomeScreen({ navigation }: TabProps<'Home'>) {
   const t = useTheme();
   const recent = useAppSelector(state => state.history.entries.slice(0, 5));
 
@@ -32,7 +32,7 @@ export function HomeScreen({ navigation }: ScreenProps<'Home'>) {
   };
 
   return (
-    <Screen>
+    <Screen edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -40,11 +40,6 @@ export function HomeScreen({ navigation }: ScreenProps<'Home'>) {
         <View style={styles.topBar}>
           <Logo size={32} />
           <View style={styles.topActions}>
-            <IconButton
-              icon="history"
-              label="History"
-              onPress={() => navigation.navigate('History')}
-            />
             <IconButton
               icon="settings"
               label="Settings"

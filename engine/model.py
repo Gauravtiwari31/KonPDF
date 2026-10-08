@@ -271,7 +271,23 @@ OUT_OF_SCOPE = {
     ],
     "video": ["video", "mp4", "mov", "avi", "mkv", "वीडियो", "vídeo", "vidéo"],
     "audio": ["audio", "mp3", "wav", "song", "music", "gaana", "गाना", "ऑडियो", "música", "musique", "musik", "áudio"],
-    "ocr": ["ocr", "read the text", "extract text from image", "text from photo", "text from image", "image to text", "photo to text", "scan to text", "editable text from scan", "टेक्स्ट निकालो"],
+}  # fmt: skip
+
+# Things the app does on the phone itself (no engine job): NW points to the screen.
+APP_FEATURES = {
+    "read_text": [
+        "ocr", "read the text", "read text", "extract text", "extract the text", "text from photo", "text from image",
+        "image to text", "photo to text", "scan to text", "editable text from scan", "copy the text", "copy text from",
+        "searchable pdf", "make it searchable", "text nikalo", "text nikal do", "text copy karna", "likha hua padho", "टेक्स्ट निकालो",
+        "टेक्स्ट निकाल", "extraer texto", "extraer el texto", "extraire le texte", "texte de l'image", "text extrahieren", "text erkennen",
+        "extrair texto", "extrair o texto",
+    ],
+    "scan": [
+        "scan a document", "scan document", "scan my document", "scan a page", "scan pages", "document scanner", "use the scanner",
+        "open scanner", "scan karo", "scan karna", "scan kar do", "scan kardo", "camera se scan", "स्कैन करो", "स्कैन करना",
+        "escanear documento", "escanear un documento", "numériser un document", "scanner un document", "dokument scannen",
+        "digitalizar documento", "escanear documento",
+    ],
 }  # fmt: skip
 
 GREETINGS = ["hi", "hii", "hello", "hey", "namaste", "namaskar", "नमस्ते", "नमस्कार", "hola", "bonjour", "salut", "hallo", "olá", "oi", "yo", "good morning"]
@@ -578,6 +594,10 @@ def extract(raw: str) -> Facts:
     for action, words in ACTIONS.items():
         if _has(text, words):
             f.actions.add(action)
+    # "extract the text" means its words (a TXT file), not pages.
+    if "extract" in f.actions and not f.target and re.search(r"\b(?:text|words|matter)\b|टेक्स्ट|texto|texte", text) and not re.search(r"\bpages?\b|पेज", text):
+        f.actions.discard("extract")
+        f.target = "txt"
     # A password with no "remove/unlock" is a request to lock ("protect with password hello123").
     if f.password and "unlock" not in f.actions:
         f.actions.add("protect")
@@ -674,14 +694,23 @@ T: dict[str, dict[str, str]] = {
         "de": "KonPDF arbeitet nicht mit Audio, sondern mit Bildern, PDFs, Dokumenten und Tabellen.",
         "pt": "O KonPDF não trabalha com áudio. Ele cuida de imagens, PDFs, documentos e planilhas.",
     },
-    "ocr": {
-        "en": "KonPDF doesn't read text out of pictures (no OCR). But I can clean up a scan so it's easier to read, or turn it into a PDF.",
-        "hi": "KonPDF तस्वीरों से टेक्स्ट नहीं पढ़ता (OCR नहीं)। पर मैं स्कैन को साफ़ कर सकता हूँ ताकि पढ़ना आसान हो, या उसे PDF बना सकता हूँ।",
-        "hi-Latn": "KonPDF photos se text nahi padhta (OCR nahi). Par main scan ko saaf kar sakta hoon taaki padhna aasaan ho, ya use PDF bana sakta hoon.",
-        "es": "KonPDF no lee texto de imágenes (sin OCR). Pero puedo limpiar un escaneo para que se lea mejor o convertirlo en PDF.",
-        "fr": "KonPDF ne lit pas le texte des images (pas d’OCR). Mais je peux nettoyer un scan pour le rendre plus lisible, ou en faire un PDF.",
-        "de": "KonPDF liest keinen Text aus Bildern (kein OCR). Ich kann aber einen Scan verbessern oder in ein PDF umwandeln.",
-        "pt": "O KonPDF não lê texto de imagens (sem OCR). Mas posso limpar uma digitalização para facilitar a leitura ou transformá-la em PDF.",
+    "read_text": {
+        "en": "I can't read text in chat, but KonPDF can, right on your phone: open the Scan tab and tap “Read text”, then pick your photo or PDF. You can copy the text, save it as Word, or make a searchable PDF.",
+        "hi": "चैट में मैं टेक्स्ट नहीं पढ़ सकता, पर KonPDF आपके फ़ोन पर ही पढ़ लेता है: Scan टैब खोलिए और “Read text” दबाइए, फिर अपनी फ़ोटो या PDF चुनिए। टेक्स्ट कॉपी कर सकते हैं, Word में सेव कर सकते हैं या सर्च होने वाली PDF बना सकते हैं।",
+        "hi-Latn": "Chat mein main text nahi padh sakta, par KonPDF phone pe hi padh leta hai: Scan tab kholo aur “Read text” dabao, phir apni photo ya PDF chuno. Text copy kar sakte ho, Word mein save kar sakte ho ya searchable PDF bana sakte ho.",
+        "es": "En el chat no puedo leer texto, pero KonPDF sí, en tu teléfono: abre la pestaña Scan y toca “Read text”, luego elige tu foto o PDF. Puedes copiar el texto, guardarlo como Word o crear un PDF con búsqueda.",
+        "fr": "Je ne lis pas le texte dans le chat, mais KonPDF le fait sur votre téléphone : ouvrez l’onglet Scan et touchez « Read text », puis choisissez votre photo ou PDF. Vous pourrez copier le texte, l’enregistrer en Word ou créer un PDF consultable.",
+        "de": "Im Chat kann ich keinen Text lesen, aber KonPDF kann es direkt auf deinem Handy: Öffne den Tab Scan, tippe auf „Read text“ und wähle dein Foto oder PDF. Du kannst den Text kopieren, als Word speichern oder ein durchsuchbares PDF erstellen.",
+        "pt": "No chat eu não leio texto, mas o KonPDF lê no seu celular: abra a aba Scan e toque em “Read text”, depois escolha a foto ou o PDF. Dá para copiar o texto, salvar em Word ou criar um PDF pesquisável.",
+    },
+    "scan": {
+        "en": "Open the Scan tab and tap “Scan a document”. The camera finds the page edges, crops and cleans it, and you get a PDF. Then I can compress it, convert it or read its text.",
+        "hi": "Scan टैब खोलिए और “Scan a document” दबाइए। कैमरा पेज के किनारे पहचानकर काटता और साफ़ करता है, और आपको PDF मिल जाती है। फिर मैं उसे छोटा, कन्वर्ट या उसका टेक्स्ट निकाल सकता हूँ।",
+        "hi-Latn": "Scan tab kholo aur “Scan a document” dabao. Camera page ke kinaare pehchaan ke crop aur saaf karta hai, aur PDF mil jaati hai. Phir main use chhota, convert ya uska text nikaal sakta hoon.",
+        "es": "Abre la pestaña Scan y toca “Scan a document”. La cámara detecta los bordes, recorta y limpia la página, y obtienes un PDF. Luego puedo comprimirlo, convertirlo o leer su texto.",
+        "fr": "Ouvrez l’onglet Scan et touchez « Scan a document ». L’appareil photo trouve les bords, recadre et nettoie la page, et vous obtenez un PDF. Ensuite je peux le compresser, le convertir ou lire son texte.",
+        "de": "Öffne den Tab Scan und tippe auf „Scan a document“. Die Kamera findet die Seitenränder, schneidet zu, bereinigt und du bekommst ein PDF. Danach kann ich es verkleinern, umwandeln oder den Text lesen.",
+        "pt": "Abra a aba Scan e toque em “Scan a document”. A câmera encontra as bordas, recorta e limpa a página, e você recebe um PDF. Depois posso comprimir, converter ou ler o texto.",
     },
     "ask_password": {
         "en": "Which password should I use? Write it like: password: yourpassword",
@@ -961,13 +990,13 @@ FAQ: list[tuple[list[str], dict[str, str]]] = [
     (
         ["formats", "which files", "file types", "supported", "kaun se format", "कौन से फ़ॉर्मैट", "formatos", "quels formats", "welche formate"],
         {
-            "en": "Images: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documents: DOCX, TXT, Markdown, HTML (and DOC, ODT, RTF, PPTX with the full converter). Sheets: XLSX, XLS, ODS, CSV, TSV, JSON. No video, audio or OCR.",
-            "hi": "इमेज: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG। PDF। डॉक्यूमेंट: DOCX, TXT, Markdown, HTML (और पूरे कन्वर्टर के साथ DOC, ODT, RTF, PPTX)। शीट: XLSX, XLS, ODS, CSV, TSV, JSON। वीडियो, ऑडियो या OCR नहीं।",
-            "hi-Latn": "Images: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documents: DOCX, TXT, Markdown, HTML (aur full converter ke saath DOC, ODT, RTF, PPTX). Sheets: XLSX, XLS, ODS, CSV, TSV, JSON. Video, audio ya OCR nahi.",
-            "es": "Imágenes: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documentos: DOCX, TXT, Markdown, HTML (y DOC, ODT, RTF, PPTX con el conversor completo). Hojas: XLSX, XLS, ODS, CSV, TSV, JSON. Sin vídeo, audio ni OCR.",
-            "fr": "Images : JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documents : DOCX, TXT, Markdown, HTML (et DOC, ODT, RTF, PPTX avec le convertisseur complet). Tableurs : XLSX, XLS, ODS, CSV, TSV, JSON. Pas de vidéo, d’audio ni d’OCR.",
-            "de": "Bilder: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Dokumente: DOCX, TXT, Markdown, HTML (und DOC, ODT, RTF, PPTX mit dem vollen Konverter). Tabellen: XLSX, XLS, ODS, CSV, TSV, JSON. Kein Video, Audio oder OCR.",
-            "pt": "Imagens: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documentos: DOCX, TXT, Markdown, HTML (e DOC, ODT, RTF, PPTX com o conversor completo). Planilhas: XLSX, XLS, ODS, CSV, TSV, JSON. Sem vídeo, áudio ou OCR.",
+            "en": "Images: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documents: DOCX, TXT, Markdown, HTML (and DOC, ODT, RTF, PPTX with the full converter). Sheets: XLSX, XLS, ODS, CSV, TSV, JSON. No video or audio. Reading text from scans happens on your phone (Scan tab).",
+            "hi": "इमेज: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG। PDF। डॉक्यूमेंट: DOCX, TXT, Markdown, HTML (और पूरे कन्वर्टर के साथ DOC, ODT, RTF, PPTX)। शीट: XLSX, XLS, ODS, CSV, TSV, JSON। वीडियो या ऑडियो नहीं। स्कैन से टेक्स्ट पढ़ना आपके फ़ोन पर होता है (Scan टैब)।",
+            "hi-Latn": "Images: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documents: DOCX, TXT, Markdown, HTML (aur full converter ke saath DOC, ODT, RTF, PPTX). Sheets: XLSX, XLS, ODS, CSV, TSV, JSON. Video ya audio nahi. Scan se text padhna phone pe hota hai (Scan tab).",
+            "es": "Imágenes: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documentos: DOCX, TXT, Markdown, HTML (y DOC, ODT, RTF, PPTX con el conversor completo). Hojas: XLSX, XLS, ODS, CSV, TSV, JSON. Sin vídeo ni audio. La lectura de texto de escaneos se hace en tu teléfono (pestaña Scan).",
+            "fr": "Images : JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documents : DOCX, TXT, Markdown, HTML (et DOC, ODT, RTF, PPTX avec le convertisseur complet). Tableurs : XLSX, XLS, ODS, CSV, TSV, JSON. Pas de vidéo ni d’audio. La lecture du texte des scans se fait sur votre téléphone (onglet Scan).",
+            "de": "Bilder: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Dokumente: DOCX, TXT, Markdown, HTML (und DOC, ODT, RTF, PPTX mit dem vollen Konverter). Tabellen: XLSX, XLS, ODS, CSV, TSV, JSON. Kein Video oder Audio. Text aus Scans wird auf deinem Handy gelesen (Tab Scan).",
+            "pt": "Imagens: JPG, PNG, WEBP, HEIC, AVIF, GIF, BMP, TIFF, ICO, SVG. PDF. Documentos: DOCX, TXT, Markdown, HTML (e DOC, ODT, RTF, PPTX com o conversor completo). Planilhas: XLSX, XLS, ODS, CSV, TSV, JSON. Sem vídeo ou áudio. A leitura de texto de digitalizações acontece no seu celular (aba Scan).",
         },
     ),
     (
@@ -1457,8 +1486,9 @@ class NW:
         group = kind if kind in ("image", "pdf", "document", "sheet") else "other"
         return SUGGEST[group].get(lang) or SUGGEST[group]["en"]
 
-    def _answer(self, lang: str, reply: str, plan: dict[str, Any] | None, kind: str, engine: str = "core") -> dict[str, Any]:
-        return {"lang": lang, "reply": reply, "plan": plan, "suggestions": self._suggestions(kind, lang), "engine": engine}
+    def _answer(self, lang: str, reply: str, plan: dict[str, Any] | None, kind: str, engine: str = "core", open: str | None = None) -> dict[str, Any]:
+        # `open`: a screen of the app that does this on the phone ("scan", "read_text").
+        return {"lang": lang, "reply": reply, "plan": plan, "suggestions": self._suggestions(kind, lang), "engine": engine, "open": open}
 
     def reply(
         self,
@@ -1487,6 +1517,15 @@ class NW:
         for topic, words in OUT_OF_SCOPE.items():
             if _has(text, words):
                 return self._answer(lang, _t(topic, lang), None, _context_kind(files, Facts()))
+        for feature, words in APP_FEATURES.items():
+            # "scan this and make a pdf" with a photo attached is a conversion, not the
+            # scanner; "extract text" from a PDF or document is a conversion to TXT.
+            if feature == "scan" and files:
+                continue
+            if feature == "read_text" and _context_kind(files, Facts()) in ("pdf", "document", "sheet") and not _has(text, ["ocr", "scan", "searchable"]):
+                continue
+            if _has(text, words):
+                return self._answer(lang, _t(feature, lang), None, _context_kind(files, Facts()), open=feature)
 
         facts = extract(message)
         # Follow-ups build on what was asked before: "also make it under 100 kb",

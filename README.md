@@ -2,9 +2,9 @@
 
 **Convert anything. Resize everything.**
 
-KonPDF is an Android app that converts images, PDFs, documents and spreadsheets in any direction, resizes photos to the exact pixels, centimetres or kilobytes a form asks for, cleans up scans, and does the everyday PDF jobs (merge, split, compress, lock, watermark, number). Its built-in assistant **NW** understands plain requests in seven languages ("make this photo under 50 KB", "isko PDF bana do", "comprime este PDF a 1 MB") and turns them into steps you confirm with one tap. NW runs on KonPDF's own engine, with no API keys and no outside AI service.
+KonPDF is an Android app that scans paper into clean PDFs, reads the text on photos and scans, converts images, PDFs, documents and spreadsheets in any direction, resizes photos to the exact pixels, centimetres or kilobytes a form asks for, cleans up scans, and does the everyday PDF jobs (merge, split, compress, lock, watermark, number). Its built-in assistant **NW** understands plain requests in seven languages ("make this photo under 50 KB", "isko PDF bana do", "comprime este PDF a 1 MB") and turns them into steps you confirm with one tap. NW runs on KonPDF's own engine, with no API keys and no outside AI service.
 
-No video, no audio, no OCR: on purpose.
+No video, no audio: on purpose. Scanning and reading text happen on the phone (Scan tab); an optional on-phone AI reader (Qwen3-VL 2B) is available in **Settings → Developer Mode**.
 
 The full spec, architecture and build plan are in **[detail.md](detail.md)**.
 
@@ -61,6 +61,7 @@ API docs are then at <http://localhost:8000/api/docs>. Run the tests with `.venv
 ```bash
 cd mobile
 npm install
+npm run llama:libs     # only if npm skipped llama.rn's install script (its prebuilt Android libraries)
 npm run android
 ```
 

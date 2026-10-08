@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import math
 import shutil
 from pathlib import Path
@@ -286,7 +287,109 @@ def page_numbers(inputs, options, out_dir, work, notes):
     return _each(inputs, options, out_dir, " (numbered)", change)
 
 
+# Fonts that cover scripts Helvetica doesn't (Devanagari…), where the system has them.
+FONT_DIRS = ("/usr/share/fonts/truetype/noto", "/usr/share/fonts/opentype/noto", "C:/Windows/Fonts")
+FONT_FILES = ("NotoSansDevanagari-Regular.ttf", "Nirmala.ttc", "Nirmala.ttf")
+_ocr_fonts: dict[str, pymupdf.Font] = {}
+
+
+def _ocr_font(text: str) -> pymupdf.Font:
+    """A font with glyphs for the text, so the hidden layer copies and searches correctly."""
+    helv = _ocr_fonts.setdefault("helv", pymupdf.Font("helv"))
+    letters = [ch for ch in text if not ch.isspace()]
+    if all(helv.has_glyph(ord(ch)) for ch in letters):
+        return helv
+    if "file" not in _ocr_fonts:
+        for folder in FONT_DIRS:
+            for name in FONT_FILES:
+                path = Path(folder) / name
+                if path.is_file():
+                    _ocr_fonts["file"] = pymupdf.Font(fontfile=str(path))
+                    break
+            if "file" in _ocr_fonts:
+                break
+    font = _ocr_fonts.get("file")
+    if font and all(font.has_glyph(ord(ch)) for ch in letters):
+        return font
+    return _ocr_fonts.setdefault("cjk", pymupdf.Font("cjk"))
+
+
+def _ocr_lines(page_ocr: Any) -> tuple[float, float, list[tuple[str, list[float]]]]:
+    """(width, height, [(text, [left, top, right, bottom])]) from the phone's reading of one page."""
+    if not isinstance(page_ocr, dict):
+        raise KonError("INVALID_OPTIONS")
+    try:
+        width, height = float(page_ocr.get("width") or 0), float(page_ocr.get("height") or 0)
+        lines = []
+        for line in page_ocr.get("lines") or []:
+            text = str(line.get("text") or "").strip()[:2000]
+            box = [float(v) for v in line.get("box") or []]
+            if text and len(box) == 4 and box[2] > box[0] and box[3] > box[1]:
+                lines.append((text, box))
+    except (TypeError, ValueError, AttributeError):
+        raise KonError("INVALID_OPTIONS") from None
+    return width, height, lines[:3000]
+
+
+def _jpeg_or_png(item: Input, work: Path) -> Path:
+    """The page as a file PDF can hold directly; other formats are re-saved as JPEG."""
+    if item.fmt in ("jpg", "jpeg", "png"):
+        return item.path
+    from PIL import Image, ImageOps
+
+    work.mkdir(parents=True, exist_ok=True)
+    target = unique(work / f"{item.stem}.jpg")
+    try:
+        with Image.open(item.path) as img:
+            ImageOps.exif_transpose(img).convert("RGB").save(target, "JPEG", quality=90)
+    except Exception:
+        raise KonError("CORRUPT_FILE", name=item.name) from None
+    return target
+
+
+def searchable(inputs, options, out_dir, work, notes):
+    """Scanned pages (images) into one PDF with an invisible text layer.
+
+    The text and its positions come from the phone, which reads the pages
+    itself (KonPDF has no reading on the engine). Each line is drawn invisibly
+    over the place it appears, so the PDF can be searched, selected and copied.
+    """
+    require(inputs, {"image"}, "images")
+    pages = options.get("ocr")
+    if not isinstance(pages, list) or len(pages) != len(inputs):
+        raise KonError("INVALID_OPTIONS")
+    doc = pymupdf.open()
+    for item, page_ocr in zip(inputs, pages):
+        ocr_w, ocr_h, lines = _ocr_lines(page_ocr)
+        path = _jpeg_or_png(item, work)
+        pix = pymupdf.Pixmap(str(path))
+        img_w, img_h = pix.width, pix.height
+        pix = None
+        # A4's long side (842 pt) for the page's long side keeps the text sensible in viewers.
+        scale = 842 / max(img_w, img_h)
+        page = doc.new_page(width=img_w * scale, height=img_h * scale)
+        page.insert_image(page.rect, filename=str(path))
+        sx = page.rect.width / (ocr_w or img_w)
+        sy = page.rect.height / (ocr_h or img_h)
+        writer = pymupdf.TextWriter(page.rect)
+        for text, (left, top, right, bottom) in lines:
+            font = _ocr_font(text)
+            box_w, box_h = (right - left) * sx, (bottom - top) * sy
+            unit = font.text_length(text, fontsize=1) or 1
+            size = max(1.0, min(box_h * 0.85, box_w / unit))
+            with contextlib.suppress(Exception):
+                writer.append(pymupdf.Point(left * sx, bottom * sy - box_h * 0.18), text, font=font, fontsize=size)
+        # render_mode 3: invisible text, the standard way searchable scans are made.
+        writer.write_text(page, render_mode=3)
+    name = str(options.get("name") or "Scan").strip()[:80] or "Scan"
+    out = _out(out_dir, f"{Path(name).stem} (searchable).pdf")
+    doc.save(out, **SAVE)
+    doc.close()
+    return [out]
+
+
 TOOLS: dict[str, Callable[..., list[Path]]] = {
+    "searchable": searchable,
     "merge": merge,
     "split": split,
     "extract": extract,

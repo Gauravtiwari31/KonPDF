@@ -51,6 +51,8 @@ TOOLS: dict[str, tuple[set[str], Runner]] = {
     "unlock": ({"password"}, _pdf("unlock")),
     "watermark": ({"text", "style", "opacity", "password"}, _pdf("watermark")),
     "page_numbers": ({"position", "style", "password"}, _pdf("page-numbers")),
+    # Scanned pages + the text the phone read from them → searchable PDF.
+    "searchable": ({"ocr", "name"}, _pdf("searchable")),
 }
 
 MAX_STEPS = 6
