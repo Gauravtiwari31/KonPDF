@@ -20,7 +20,7 @@ The first build takes about 10 minutes, because it installs LibreOffice. Later b
 2. Open `https://<your-address>/api/health` in a browser. You should see:
 
    ```json
-   {"ok":true,"status":"ok","version":"0.0.2","office":true,"nw":"core"}
+   {"ok":true,"status":"ok","version":"0.0.3","office":true,"nw":"core"}
    ```
 
    `"office": true` means LibreOffice is installed, so Word, PowerPoint and old Office files convert with full quality.
