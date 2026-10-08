@@ -195,7 +195,7 @@ The enhance screen shows a fast low-resolution **live preview** and a **before/a
 - **Knows the files:** a plan always fits what's attached (rotate is a photo job for photos and a PDF job for PDFs); attaching files after asking re-plans for them; "it's already 80 KB" when a file is already under the limit; "it's already a JPG" when there's nothing to convert; "merging needs two or more files".
 - **Honest limits:** background removal, video, audio and OCR are declined kindly with what it can do instead; formats it can read but not write (HEIC, SVG, PPTX) get a suggestion.
 - **Never a dead end:** if a request is unclear, NW says what it can do with the attached file and offers matching suggestion buttons.
-- **Tested on real phrasing:** about 130 everyday requests in all seven languages (with typos and Hinglish) are turned into plans and run on real files in the test suite (`engine/tests/test_nw_conversations.py`).
+- **Tested on real phrasing:** about 200 everyday requests in all seven languages (with typos and Hinglish) are turned into plans and run on real files in the test suite (`engine/tests/test_nw_conversations.py`).
 
 ### How NW runs (`engine/model.py`)
 
@@ -495,7 +495,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 5 | **Friendly errors in the app:** engine errors shown as they come, app-only problems (offline, server waking, no app to open a file) in all 7 languages, "Ask NW" on every error card | Done |
 | 6 | **Engine:** format detection, converters (images, PDF, documents, sheets, LibreOffice bridge), resizer, enhance, PDF tools, plan runner, friendly error catalogue in 7 languages, Dockerfile | Done |
 | 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) | Done |
-| 8 | **Tests:** engine 752 (pytest); mobile 19 (Jest) + type-check + lint | Done |
+| 8 | **Tests:** engine 815 (pytest); mobile 19 (Jest) + type-check + lint | Done |
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
@@ -517,7 +517,7 @@ cd engine
 python -m venv .venv
 .venv/Scripts/pip install -r requirements-dev.txt        # macOS/Linux: .venv/bin/pip
 .venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-.venv/Scripts/python -m pytest                            # 752 tests
+.venv/Scripts/python -m pytest                            # 815 tests
 
 # Android app (Node 22, JDK 17, Android SDK)
 cd mobile

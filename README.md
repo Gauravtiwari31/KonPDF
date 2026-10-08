@@ -33,7 +33,7 @@ The app then works on Wi-Fi or mobile data. For local testing you can still poin
 │   │   ├── pipeline.py  runs single tools and NW's multi-step plans (whitelisted)
 │   │   ├── converters/  images · pdf · documents · sheets · office (LibreOffice)
 │   │   └── tools/       resize · enhance · pdf_tools
-│   ├── tests/           752 tests
+│   ├── tests/           815 tests
 │   └── Dockerfile       Python + LibreOffice + Noto fonts
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module
