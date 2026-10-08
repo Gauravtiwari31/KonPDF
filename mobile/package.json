@@ -1,6 +1,6 @@
 {
   "name": "konpdf",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "description": "KonPDF \u2014 a React Native (Android) app that converts images, PDFs, documents and sheets, resizes and enhances images, with the NW assistant",
   "author": "Gaurav Tiwari",

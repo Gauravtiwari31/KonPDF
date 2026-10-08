@@ -20,7 +20,7 @@ The first build takes about 10 minutes, because it installs LibreOffice. Later b
 2. Open `https://<your-address>/api/health` in a browser. You should see:
 
    ```json
-   {"ok":true,"status":"ok","version":"0.0.3","office":true,"nw":"core"}
+   {"ok":true,"status":"ok","version":"0.0.4","office":true,"nw":"core"}
    ```
 
    `"office": true` means LibreOffice is installed, so Word, PowerPoint and old Office files convert with full quality.
@@ -28,14 +28,17 @@ The first build takes about 10 minutes, because it installs LibreOffice. Later b
 
 ## 3. Point the app at it
 
-In KonPDF: **Settings → Converter engine**, enter `https://<your-address>` (the app adds `/api` itself), tap **Test**, then **Save**.
+The app has `https://konpdf-engine.onrender.com` built in (`mobile/src/env.ts`), so a service with that name needs nothing more.
 
-To build the address into future APKs, so nobody has to type it, run this before building:
+If Render gave your service a different address, either:
 
-```bash
-cd mobile
-KONPDF_ENGINE_URL=https://<your-address> node scripts/write-build-env.mjs
-```
+- enter it in KonPDF: **Settings → Converter engine**, `https://<your-address>` (the app adds `/api` itself), **Test**, then **Save**; or
+- build it into the APK, so nobody has to type it:
+
+  ```bash
+  cd mobile
+  KONPDF_ENGINE_URL=https://<your-address> node scripts/write-build-env.mjs
+  ```
 
 ## Things to know about the free plan
 
