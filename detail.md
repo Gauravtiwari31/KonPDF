@@ -583,6 +583,18 @@ Reading text from images (OCR) is now part of KonPDF, with one firm rule: **it h
 - The model loads only while reading (about 2 GB of memory) and is released a minute after the last page. If the phone runs out of memory, a friendly error offers the standard reader.
 - Native code: llama.rn ships one build per CPU generation for 64-bit ARM; the APK carries them compressed. Its Qualcomm NPU/GPU build is left out (it needs extra system libraries). 32-bit phones never load it.
 
+### Tested on a phone
+
+v0.0.5 was tested over USB on a **TECNO LJ8 (Android 16, 7.3 GB RAM)**:
+- **Scanner:** opens; gallery import → review → pages back in KonPDF.
+- **PDF made on the phone:** opens in Drive's PDF viewer.
+- **Standard reader:** reads a printed page in under a second.
+- **Searchable PDF:** built and returned.
+- **Model download:** resumes after a pause and passes its SHA-256 check.
+- **AI reader:** reads a marks table cell for cell in about a minute and offers Table → Excel.
+
+**Release-build pitfall:** R8 (code shrinking) broke ML Kit's component registry, so `GmsDocumentScanning.getClient` and `TextRecognition.getClient` failed with a NullPointerException deep inside ML Kit. The camera didn't open and reading text crashed. `proguard-rules.pro` now keeps ML Kit's classes, and every scanner or reader failure becomes a friendly message plus a `KonScan` log line instead of a crash.
+
 ### Native modules
 
 | Module | Kotlin | Does |
