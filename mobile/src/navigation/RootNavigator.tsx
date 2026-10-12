@@ -13,6 +13,7 @@ import { TabBar } from '../components/TabBar';
 import { useSharedFiles } from '../hooks/useSharedFiles';
 import { ConvertScreen } from '../screens/ConvertScreen';
 import { DeveloperModeScreen } from '../screens/DeveloperModeScreen';
+import { DriveScreen } from '../screens/DriveScreen';
 import { EnhanceScreen } from '../screens/EnhanceScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -121,6 +122,7 @@ export function RootNavigator({
         <Stack.Screen name="ScanResult" component={ScanResultScreen} />
         <Stack.Screen name="ReadText" component={ReadTextScreen} />
         <Stack.Screen name="DeveloperMode" component={DeveloperModeScreen} />
+        <Stack.Screen name="Drive" component={DriveScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

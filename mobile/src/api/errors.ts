@@ -384,6 +384,228 @@ const APP_ERRORS: Record<string, Record<Lang, Text>> = {
       hint: 'Feche outros apps e tente de novo, use o leitor Standard ou baixe o modelo outra vez no Developer Mode.',
     },
   },
+  DRIVE_UNAVAILABLE: {
+    en: {
+      title: "Google Drive backup isn't available",
+      message: 'It needs Google Play services, which this phone is missing or needs to update.',
+      hint: 'Everything else in KonPDF works as usual. You can still Share or Save your files.',
+    },
+    hi: {
+      title: 'Google Drive बैकअप उपलब्ध नहीं है',
+      message: 'इसे Google Play services चाहिए, जो इस फ़ोन में नहीं है या अपडेट माँग रहा है।',
+      hint: 'KonPDF का बाकी सब पहले जैसा चलता है। आप फ़ाइलें शेयर या सेव कर सकते हैं।',
+    },
+    'hi-Latn': {
+      title: 'Google Drive backup available nahi hai',
+      message: 'Ise Google Play services chahiye, jo is phone mein nahi hai ya update maang raha hai.',
+      hint: 'KonPDF ka baaki sab pehle jaisa chalta hai. Files Share ya Save kar sakte ho.',
+    },
+    es: {
+      title: 'La copia en Google Drive no está disponible',
+      message: 'Necesita Google Play services, que falta en este teléfono o debe actualizarse.',
+      hint: 'Todo lo demás de KonPDF funciona igual. Puedes Compartir o Guardar tus archivos.',
+    },
+    fr: {
+      title: 'La sauvegarde Google Drive n’est pas disponible',
+      message: 'Elle a besoin des services Google Play, absents de ce téléphone ou à mettre à jour.',
+      hint: 'Le reste de KonPDF fonctionne normalement. Vous pouvez toujours Partager ou Enregistrer vos fichiers.',
+    },
+    de: {
+      title: 'Google-Drive-Sicherung ist nicht verfügbar',
+      message: 'Sie braucht die Google Play-Dienste, die auf diesem Handy fehlen oder ein Update brauchen.',
+      hint: 'Alles andere in KonPDF funktioniert wie gewohnt. Du kannst deine Dateien weiter teilen oder speichern.',
+    },
+    pt: {
+      title: 'O backup no Google Drive não está disponível',
+      message: 'Ele precisa do Google Play services, que falta neste celular ou precisa de atualização.',
+      hint: 'O resto do KonPDF funciona normalmente. Você ainda pode Compartilhar ou Salvar seus arquivos.',
+    },
+  },
+  DRIVE_NOT_SET_UP: {
+    en: {
+      title: "Google Drive isn't set up in this version",
+      message: "This copy of KonPDF isn't registered with Google yet, so it can't connect to Drive.",
+      hint: "That's on our side, not yours. Your files are safe on this phone.",
+    },
+    hi: {
+      title: 'इस वर्ज़न में Google Drive सेट नहीं है',
+      message: 'KonPDF की यह कॉपी अभी Google के साथ रजिस्टर नहीं है, इसलिए Drive से नहीं जुड़ सकती।',
+      hint: 'यह हमारी तरफ़ की बात है, आपकी नहीं। आपकी फ़ाइलें इस फ़ोन पर सुरक्षित हैं।',
+    },
+    'hi-Latn': {
+      title: 'Is version mein Google Drive set nahi hai',
+      message: 'KonPDF ki yeh copy abhi Google ke saath register nahi hai, isliye Drive se nahi jud sakti.',
+      hint: 'Yeh hamari taraf ki baat hai, aapki nahi. Aapki files is phone pe safe hain.',
+    },
+    es: {
+      title: 'Google Drive no está configurado en esta versión',
+      message: 'Esta copia de KonPDF aún no está registrada con Google, así que no puede conectarse a Drive.',
+      hint: 'Es cosa nuestra, no tuya. Tus archivos están a salvo en este teléfono.',
+    },
+    fr: {
+      title: 'Google Drive n’est pas configuré dans cette version',
+      message: 'Cette copie de KonPDF n’est pas encore enregistrée auprès de Google : elle ne peut pas se connecter à Drive.',
+      hint: 'Le problème vient de nous, pas de vous. Vos fichiers sont en sécurité sur ce téléphone.',
+    },
+    de: {
+      title: 'Google Drive ist in dieser Version nicht eingerichtet',
+      message: 'Diese KonPDF-Kopie ist noch nicht bei Google registriert und kann sich daher nicht mit Drive verbinden.',
+      hint: 'Das liegt an uns, nicht an dir. Deine Dateien sind auf diesem Handy sicher.',
+    },
+    pt: {
+      title: 'O Google Drive não está configurado nesta versão',
+      message: 'Esta cópia do KonPDF ainda não está registrada no Google, então não consegue se conectar ao Drive.',
+      hint: 'O problema é do nosso lado, não seu. Seus arquivos estão seguros neste celular.',
+    },
+  },
+  DRIVE_SIGNED_OUT: {
+    en: {
+      title: 'Reconnect Google Drive',
+      message: "KonPDF's access to your Drive has ended, so backups are paused.",
+      hint: 'Open Settings → Google Drive and tap Reconnect.',
+    },
+    hi: {
+      title: 'Google Drive दोबारा जोड़िए',
+      message: 'आपकी Drive तक KonPDF की पहुँच खत्म हो गई है, इसलिए बैकअप रुका हुआ है।',
+      hint: 'सेटिंग्स → Google Drive खोलकर Reconnect दबाइए।',
+    },
+    'hi-Latn': {
+      title: 'Google Drive dobara connect karo',
+      message: 'Aapki Drive tak KonPDF ka access khatam ho gaya hai, isliye backup ruka hua hai.',
+      hint: 'Settings → Google Drive kholo aur Reconnect dabao.',
+    },
+    es: {
+      title: 'Vuelve a conectar Google Drive',
+      message: 'KonPDF ya no tiene acceso a tu Drive, así que las copias están en pausa.',
+      hint: 'Abre Ajustes → Google Drive y toca Reconnect.',
+    },
+    fr: {
+      title: 'Reconnectez Google Drive',
+      message: 'KonPDF n’a plus accès à votre Drive : les sauvegardes sont en pause.',
+      hint: 'Ouvrez Réglages → Google Drive et touchez Reconnect.',
+    },
+    de: {
+      title: 'Google Drive neu verbinden',
+      message: 'KonPDF hat keinen Zugriff mehr auf dein Drive, die Sicherung pausiert.',
+      hint: 'Öffne Einstellungen → Google Drive und tippe auf Reconnect.',
+    },
+    pt: {
+      title: 'Conecte o Google Drive de novo',
+      message: 'O KonPDF perdeu o acesso ao seu Drive, então os backups estão pausados.',
+      hint: 'Abra Ajustes → Google Drive e toque em Reconnect.',
+    },
+  },
+  DRIVE_UNREACHABLE: {
+    en: {
+      title: "Can't reach Google Drive",
+      message: 'Check that you are online. Your file is safe on this phone.',
+      hint: 'Backups try again by themselves the next time you open KonPDF.',
+    },
+    hi: {
+      title: 'Google Drive तक नहीं पहुँच पाए',
+      message: 'देखिए कि इंटरनेट चालू है। आपकी फ़ाइल इस फ़ोन पर सुरक्षित है।',
+      hint: 'अगली बार KonPDF खोलने पर बैकअप अपने आप फिर कोशिश करेगा।',
+    },
+    'hi-Latn': {
+      title: 'Google Drive tak nahi pahunch paaye',
+      message: 'Internet on hai ya nahi dekh lo. Aapki file is phone pe safe hai.',
+      hint: 'Agli baar KonPDF kholne pe backup apne aap phir try karega.',
+    },
+    es: {
+      title: 'No podemos conectar con Google Drive',
+      message: 'Comprueba tu conexión. Tu archivo está a salvo en este teléfono.',
+      hint: 'La copia se reintenta sola la próxima vez que abras KonPDF.',
+    },
+    fr: {
+      title: 'Impossible de joindre Google Drive',
+      message: 'Vérifiez votre connexion. Votre fichier est en sécurité sur ce téléphone.',
+      hint: 'La sauvegarde réessaiera d’elle-même à la prochaine ouverture de KonPDF.',
+    },
+    de: {
+      title: 'Google Drive nicht erreichbar',
+      message: 'Prüfe deine Internetverbindung. Deine Datei ist auf diesem Handy sicher.',
+      hint: 'Die Sicherung versucht es beim nächsten Öffnen von KonPDF von selbst erneut.',
+    },
+    pt: {
+      title: 'Não conseguimos falar com o Google Drive',
+      message: 'Verifique sua conexão. Seu arquivo está seguro neste celular.',
+      hint: 'O backup tenta de novo sozinho na próxima vez que você abrir o KonPDF.',
+    },
+  },
+  DRIVE_FULL: {
+    en: {
+      title: 'Your Google Drive is full',
+      message: "There's no room left in your Drive for this file.",
+      hint: 'Free up space in Google Drive, then try again.',
+    },
+    hi: {
+      title: 'आपकी Google Drive भर गई है',
+      message: 'इस फ़ाइल के लिए आपकी Drive में जगह नहीं बची।',
+      hint: 'Google Drive में जगह खाली करके फिर कोशिश कीजिए।',
+    },
+    'hi-Latn': {
+      title: 'Aapki Google Drive bhar gayi hai',
+      message: 'Is file ke liye aapki Drive mein jagah nahi bachi.',
+      hint: 'Google Drive mein jagah khaali karke phir try karo.',
+    },
+    es: {
+      title: 'Tu Google Drive está lleno',
+      message: 'No queda espacio en tu Drive para este archivo.',
+      hint: 'Libera espacio en Google Drive y vuelve a intentarlo.',
+    },
+    fr: {
+      title: 'Votre Google Drive est plein',
+      message: 'Il n’y a plus de place dans votre Drive pour ce fichier.',
+      hint: 'Libérez de l’espace dans Google Drive, puis réessayez.',
+    },
+    de: {
+      title: 'Dein Google Drive ist voll',
+      message: 'In deinem Drive ist kein Platz mehr für diese Datei.',
+      hint: 'Schaffe Platz in Google Drive und versuche es dann erneut.',
+    },
+    pt: {
+      title: 'Seu Google Drive está cheio',
+      message: 'Não há mais espaço no seu Drive para este arquivo.',
+      hint: 'Libere espaço no Google Drive e tente de novo.',
+    },
+  },
+  DRIVE_BUSY: {
+    en: {
+      title: 'Google Drive is busy',
+      message: 'It asked us to slow down for a moment.',
+      hint: 'Please try again in a minute.',
+    },
+    hi: {
+      title: 'Google Drive व्यस्त है',
+      message: 'उसने थोड़ी देर रुकने को कहा है।',
+      hint: 'कृपया एक मिनट बाद फिर कोशिश करें।',
+    },
+    'hi-Latn': {
+      title: 'Google Drive busy hai',
+      message: 'Usne thodi der rukne ko kaha hai.',
+      hint: 'Ek minute baad phir try karo.',
+    },
+    es: {
+      title: 'Google Drive está ocupado',
+      message: 'Nos pidió esperar un momento.',
+      hint: 'Inténtalo de nuevo en un minuto.',
+    },
+    fr: {
+      title: 'Google Drive est occupé',
+      message: 'Il nous demande de patienter un instant.',
+      hint: 'Réessayez dans une minute.',
+    },
+    de: {
+      title: 'Google Drive ist ausgelastet',
+      message: 'Es hat uns gebeten, kurz zu warten.',
+      hint: 'Bitte versuche es in einer Minute erneut.',
+    },
+    pt: {
+      title: 'O Google Drive está ocupado',
+      message: 'Ele pediu para esperarmos um pouco.',
+      hint: 'Tente de novo daqui a um minuto.',
+    },
+  },
   INTERNAL: {
     en: {
       title: 'Something went wrong',
@@ -423,8 +645,16 @@ const APP_ERRORS: Record<string, Record<Lang, Text>> = {
   },
 };
 
-export function appError(code: keyof typeof APP_ERRORS, lang: Lang): FriendlyError {
+export type AppErrorCode = keyof typeof APP_ERRORS;
+
+export function appError(code: AppErrorCode, lang: Lang): FriendlyError {
   return { code, ...APP_ERRORS[code][lang] };
+}
+
+/** A FriendlyError code kept for later (a failed Drive backup), in the person's language now. */
+export function appErrorByCode(code: string, lang: Lang): FriendlyError {
+  const known = Object.prototype.hasOwnProperty.call(APP_ERRORS, code);
+  return appError(known ? (code as AppErrorCode) : 'INTERNAL', lang);
 }
 
 const isFriendly = (value: unknown): value is FriendlyError =>
@@ -495,6 +725,19 @@ export function toFriendlyError(error: unknown, lang: Lang): FriendlyError {
         return appError('CANT_READ_FILE', lang);
       case 'ai_failed':
         return appError('AI_READER_FAILED', lang);
+      case 'drive_unavailable':
+        return appError('DRIVE_UNAVAILABLE', lang);
+      case 'drive_not_configured':
+        return appError('DRIVE_NOT_SET_UP', lang);
+      case 'drive_signed_out':
+      case 'drive_auth':
+        return appError('DRIVE_SIGNED_OUT', lang);
+      case 'drive_network':
+        return appError('DRIVE_UNREACHABLE', lang);
+      case 'drive_full':
+        return appError('DRIVE_FULL', lang);
+      case 'drive_busy':
+        return appError('DRIVE_BUSY', lang);
     }
   }
   return appError('INTERNAL', lang);

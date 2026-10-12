@@ -40,6 +40,7 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
   const confirm = useConfirm();
   const prefs = useAppSelector(state => state.preferences);
   const historyCount = useAppSelector(state => state.history.entries.length);
+  const drive = useAppSelector(state => state.drive);
   const phoneLang = LANGUAGES.find(l => l.code === deviceLang())?.label;
 
   const clearHistory = async () => {
@@ -109,6 +110,31 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
           <ServerButton />
         </View>
 
+        <SectionLabel style={styles.section}>Google Drive backup</SectionLabel>
+        <BrutalPressable
+          offset={3}
+          onPress={() => navigation.navigate('Drive')}
+          accessibilityLabel="Google Drive backup"
+          contentStyle={styles.devRow}
+        >
+          <Icon name="cloud" size={22} color={t.colors.text} />
+          <View style={styles.flex}>
+            <AppText variant="bodyStrong" numberOfLines={1}>
+              {drive.account ? `On · ${drive.account.email}` : 'Off · optional'}
+            </AppText>
+            <AppText variant="caption" color="textMuted">
+              {!drive.account
+                ? 'Sign in with Google to keep your files in your own Drive'
+                : drive.needsReconnect
+                ? 'Paused: reconnect to keep backing up'
+                : drive.autoBackup
+                ? 'New results are backed up automatically'
+                : 'Results go to Drive when you choose'}
+            </AppText>
+          </View>
+          <Icon name="chevronRight" size={20} color={t.colors.text} />
+        </BrutalPressable>
+
         <SectionLabel style={styles.section}>Developer Mode</SectionLabel>
         <BrutalPressable
           offset={3}
@@ -133,7 +159,9 @@ export function SettingsScreen({ navigation }: ScreenProps<'Settings'>) {
           <AppText>
             Scanning and reading text happen on this phone. Files are sent to
             the converter only to process them, and are deleted from it after
-            30 minutes. History stays on this phone. No account, no tracking.
+            30 minutes. History stays on this phone, and goes to your own
+            Google Drive only if you connect it. No KonPDF account, no
+            tracking.
           </AppText>
         </BrutalBox>
         <Button

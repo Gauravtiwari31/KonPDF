@@ -191,6 +191,10 @@ dependencies {
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-devanagari:16.0.1")
 
+    // Optional Google Drive backup: Google's own account picker and permission
+    // screen (AuthorizationClient), for the drive.file scope only.
+    implementation("com.google.android.gms:play-services-auth:22.0.0")
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

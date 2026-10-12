@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { FriendlyError, toFriendlyError } from '../api/errors';
+import { DriveSave } from '../components/DriveSave';
 import { ErrorCard } from '../components/ErrorCard';
 import { FileRow } from '../components/FileRow';
 import {
@@ -153,6 +154,7 @@ export function ResultScreen({ navigation, route }: ScreenProps<'Result'>) {
               onPress={() => act(() => files.save(entry.outputs[0]), 'Saved')}
             />
           ) : null}
+          <DriveSave entryId={entry.id} />
           <Button
             title="Do more with it"
             icon="sparkle"

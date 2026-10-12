@@ -1,5 +1,13 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 import { setEngineLanguage } from '../api/engine';
+import { runQueue } from '../features/drive/backup';
+import {
+  backupRequested,
+  backupsPruned,
+  driveConnected,
+  driveHydrated,
+  waitingIds,
+} from '../features/drive/driveSlice';
 import {
   entryAdded,
   entryRemoved,
@@ -62,5 +70,50 @@ startListening({
       .filter(f => !kept.has(f.path))
       .forEach(f => files.remove(f));
     await storage.set(STORAGE_KEYS.history, after);
+    // Entries that left History leave the Drive backup list too (their
+    // files stay in Drive).
+    const ids = after.map(e => e.id);
+    const backups = Object.keys(api.getState().drive.backups);
+    if (backups.some(id => !ids.includes(id))) {
+      api.dispatch(backupsPruned(ids));
+    }
   },
+});
+
+// Google Drive backup (optional): persist its state on every change.
+startListening({
+  predicate: action =>
+    action.type.startsWith('drive/') && !driveHydrated.match(action),
+  effect: async (_action, api) => {
+    await storage.set(STORAGE_KEYS.drive, api.getState().drive);
+  },
+});
+
+// New results go to Drive by themselves when automatic backup is on.
+startListening({
+  actionCreator: entryAdded,
+  effect: (action, api) => {
+    const { drive } = api.getState();
+    if (drive.account && drive.autoBackup && !drive.needsReconnect) {
+      api.dispatch(backupRequested([action.payload.id]));
+    }
+  },
+});
+
+// On start-up and after (re)connecting, catch up on results still waiting.
+startListening({
+  matcher: isAnyOf(driveHydrated, driveConnected),
+  effect: (_action, api) => {
+    const { drive, history } = api.getState();
+    const ids = waitingIds(drive, history.entries);
+    if (ids.length) {
+      api.dispatch(backupRequested(ids));
+    }
+  },
+});
+
+// Uploads run one at a time in the background.
+startListening({
+  actionCreator: backupRequested,
+  effect: (_action, api) => runQueue(api.dispatch, api.getState),
 });

@@ -36,6 +36,8 @@ export const STORAGE_KEYS = {
   preferences: 'konpdf.preferences.v1',
   apiUrl: 'konpdf.apiUrl.v1',
   history: 'konpdf.history.v1',
+  /** Optional Google Drive backup: the connected account and what is backed up. */
+  drive: 'konpdf.drive.v1',
   /** Set once the welcome screen has been seen. */
   onboarded: 'konpdf.onboarded.v1',
   /** Set once the Developer Mode introduction has been shown. */

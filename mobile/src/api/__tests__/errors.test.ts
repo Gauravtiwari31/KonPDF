@@ -27,7 +27,7 @@ function axiosError(status?: number, data?: unknown, code?: string) {
 /** Nothing a person sees may contain a status code or library jargon. */
 function expectFriendly(text: string) {
   expect(text).not.toMatch(/\b[45]\d\d\b/);
-  expect(text).not.toMatch(/axios|ECONN|status code|Network Error|undefined/i);
+  expect(text).not.toMatch(/axios|\bECONN|status code|Network Error|undefined/i);
 }
 
 describe('toFriendlyError', () => {
@@ -88,6 +88,12 @@ describe('app error catalogue', () => {
       'NO_APP',
       'FILE_GONE',
       'TOO_BIG_TO_SEND',
+      'DRIVE_UNAVAILABLE',
+      'DRIVE_NOT_SET_UP',
+      'DRIVE_SIGNED_OUT',
+      'DRIVE_UNREACHABLE',
+      'DRIVE_FULL',
+      'DRIVE_BUSY',
       'INTERNAL',
     ] as const) {
       for (const { code: lang } of LANGUAGES) {

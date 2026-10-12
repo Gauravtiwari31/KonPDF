@@ -6,6 +6,8 @@ KonPDF is an Android app that scans paper into clean PDFs, reads the text on pho
 
 No video, no audio: on purpose. Scanning and reading text happen on the phone (Scan tab); an optional on-phone AI reader (Qwen3-VL 2B) is available in **Settings → Developer Mode**.
 
+**Optional Google Drive backup:** sign in with Google in **Settings → Google Drive** and the PDFs and results you make are kept in a KonPDF folder in your own Drive, automatically or with one tap. KonPDF asks only for `drive.file`, so it sees just the files it creates there. It needs a one-time, free registration in Google Cloud: **[docs/google-drive-setup.md](docs/google-drive-setup.md)**.
+
 The full spec, architecture and build plan are in **[detail.md](detail.md)**.
 
 ## Test the APK
@@ -21,6 +23,7 @@ To use a different engine (your own Render service, or your computer while devel
 ```
 .
 ├── detail.md            what KonPDF is, every feature, architecture, build plan
+├── docs/                deploying the engine on Render, setting up Google Drive backup
 ├── engine/              Python conversion engine (FastAPI)
 │   ├── model.py         NW, the assistant (built in: no API key, no download)
 │   ├── app/
@@ -36,10 +39,11 @@ To use a different engine (your own Render service, or your computer while devel
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module
     └── src/
-        ├── screens/     Welcome · Home · Convert · Resize · Enhance · PDF tools · NW · Result · History · Settings
+        ├── screens/     Welcome · Home · Convert · Resize · Enhance · PDF tools · NW · Result · History · Settings · Google Drive
         ├── components/  DoAll's neo-brutalist UI kit, recoloured "Ink & Volt"
         ├── api/         engine client + friendly error mapper
-        ├── services/    files (native module), engine address, storage
+        ├── features/    history, preferences, scan, Developer Mode, Google Drive backup
+        ├── services/    files (native module), engine address, storage, Google Drive
         └── theme/       palette, typography, light/dark themes
 ```
 

@@ -21,6 +21,7 @@ export function HistoryScreen({ navigation }: TabProps<'History'>) {
   const dispatch = useAppDispatch();
   const confirm = useConfirm();
   const entries = useAppSelector(state => state.history.entries);
+  const backups = useAppSelector(state => state.drive.backups);
 
   const clear = async () => {
     const ok = await confirm({
@@ -48,7 +49,11 @@ export function HistoryScreen({ navigation }: TabProps<'History'>) {
             title="History"
             right={
               entries.length ? (
-                <IconButton icon="trash" label="Clear history" onPress={clear} />
+                <IconButton
+                  icon="trash"
+                  label="Clear history"
+                  onPress={clear}
+                />
               ) : null
             }
           />
@@ -62,35 +67,45 @@ export function HistoryScreen({ navigation }: TabProps<'History'>) {
             </AppText>
           </View>
         }
-        renderItem={({ item }) => (
-          <BrutalPressable
-            offset={3}
-            onPress={() => navigation.navigate('Result', { entryId: item.id })}
-            accessibilityLabel={item.title}
-            contentStyle={styles.row}
-          >
-            <View
-              style={[
-                styles.sticker,
-                { backgroundColor: familyColors[item.family] },
-              ]}
+        renderItem={({ item }) => {
+          const inDrive = backups[item.id]?.status === 'done';
+          return (
+            <BrutalPressable
+              offset={3}
+              onPress={() =>
+                navigation.navigate('Result', { entryId: item.id })
+              }
+              accessibilityLabel={
+                inDrive ? `${item.title}, saved in Google Drive` : item.title
+              }
+              contentStyle={styles.row}
             >
-              <AppText variant="label" color={palette.ink}>
-                {item.outputs.length}
-              </AppText>
-            </View>
-            <View style={styles.flex}>
-              <AppText variant="bodyStrong" numberOfLines={1}>
-                {item.title}
-              </AppText>
-              <AppText variant="mono" color="textMuted">
-                {formatWhen(item.createdAt)} ·{' '}
-                {formatBytes(item.outputs.reduce((s, f) => s + f.size, 0))}
-              </AppText>
-            </View>
-            <Icon name="chevronRight" size={18} color={t.colors.textMuted} />
-          </BrutalPressable>
-        )}
+              <View
+                style={[
+                  styles.sticker,
+                  { backgroundColor: familyColors[item.family] },
+                ]}
+              >
+                <AppText variant="label" color={palette.ink}>
+                  {item.outputs.length}
+                </AppText>
+              </View>
+              <View style={styles.flex}>
+                <AppText variant="bodyStrong" numberOfLines={1}>
+                  {item.title}
+                </AppText>
+                <AppText variant="mono" color="textMuted">
+                  {formatWhen(item.createdAt)} ·{' '}
+                  {formatBytes(item.outputs.reduce((s, f) => s + f.size, 0))}
+                </AppText>
+              </View>
+              {inDrive ? (
+                <Icon name="cloud" size={18} color={t.colors.textMuted} />
+              ) : null}
+              <Icon name="chevronRight" size={18} color={t.colors.textMuted} />
+            </BrutalPressable>
+          );
+        }}
       />
     </Screen>
   );
@@ -101,7 +116,12 @@ const Separator = () => <View style={styles.separator} />;
 const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   separator: { height: 10 },
-  empty: { alignItems: 'center', gap: 12, paddingTop: 40, paddingHorizontal: 20 },
+  empty: {
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 40,
+    paddingHorizontal: 20,
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
   sticker: {
     width: 36,

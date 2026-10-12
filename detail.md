@@ -31,6 +31,7 @@ This document defines what KonPDF is, what it does, how it is built and in what 
 16. [Build plan](#16-build-plan)
 17. [Trade-offs and limits](#17-trade-offs-and-limits)
 18. [Scan tab and Developer Mode](#18-scan-tab-and-developer-mode)
+19. [Google Drive backup (optional)](#19-google-drive-backup-optional)
 
 ---
 
@@ -281,6 +282,7 @@ Plans are never run without the user tapping **Run**, and NW can only call KonPD
 - **Share to KonPDF:** appears in Android's share sheet; files shared from any app open straight in KonPDF.
 - **Recipes:** save a plan as a one-tap recipe ("Govt form photo", "Email-ready PDF"). NW plans can be saved as recipes.
 - **History:** recent results stay on the phone with open, share and save-again; clear any time.
+- **Google Drive backup (optional):** sign in with Google and results are kept in a KonPDF folder in your own Drive, automatically or one by one ([section 19](#19-google-drive-backup-optional)).
 - **File info:** dimensions, DPI, size, pages and format before you convert.
 - **Batch:** convert, resize or enhance up to 20 files in one go.
 - **Light, dark and system themes**, same as DoAll.
@@ -301,7 +303,8 @@ Same foundation as DoAll, so the UI kit carries over unchanged.
 | Navigation | React Navigation (native stack) |
 | Networking | Axios (multipart uploads with progress) |
 | Files | KonPDF's own Kotlin module (`KonDevice`): Android's file picker, share-sheet intake, downloads, and save / share / open through the Storage Access Framework and a FileProvider; no storage permission |
-| Storage | AsyncStorage (preferences, history index, recipes) |
+| Storage | AsyncStorage (preferences, history index, recipes, Drive backup state) |
+| Google Drive (optional) | Play services `AuthorizationClient` (`drive.file` scope only) + Drive REST v3; uploads by KonPDF's own Kotlin module (`KonDrive`) |
 | Graphics | react-native-svg (icon set, progress ring) |
 | Fonts | Bricolage Grotesque, IBM Plex Mono, Instrument Serif (same as DoAll) |
 | Tests | Jest + react-test-renderer |
@@ -342,6 +345,8 @@ flowchart LR
   end
   App -- "HTTPS multipart" --> API
   API -- "result files" --> App
+  Drive[("Person's own Google Drive<br/>(optional, KonPDF folder)")]
+  App -. "drive.file uploads" .-> Drive
 ```
 
 - The **app** handles picking, options, previews, history and sharing. It never sees raw error codes.
@@ -421,8 +426,9 @@ Every response is either `{ "ok": true, ... }` or the friendly error shape from 
 | **NW** | Chat with plan cards (**Run** / **Edit** / **Save as recipe**), suggestion chips, language-aware |
 | **Result** | Output files with size change ("2.4 MB → 48 KB, −98 %"), **Open**, **Share**, **Save**, **Do more** |
 | **History** | Past results, recipes |
-| **Settings** | Theme, language, default quality, server address, Developer Mode, clear history, about |
+| **Settings** | Theme, language, default quality, server address, Google Drive backup, Developer Mode, clear history, about |
 | **Developer Mode** | On/off, phone check, AI reader download / pause / resume / delete, Wi-Fi only |
+| **Google Drive** | Connect / reconnect / disconnect, automatic backup on/off, back up older results, open the KonPDF folder |
 
 ### State (Redux Toolkit)
 
@@ -434,6 +440,7 @@ Every response is either `{ "ok": true, ... }` or the friendly error shape from 
 | `history` | Recent results (persisted) |
 | `recipes` | Saved plans (persisted) |
 | `preferences` | Theme, language, default quality, server address (persisted) |
+| `drive` | Optional Google Drive backup: account, folder, automatic backup, each result's backup status (persisted) |
 
 ---
 
@@ -468,7 +475,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 - Files are never logged and never used to train anything. NW sees only file names, types and sizes, not contents.
 - File types are checked by their content, not their name. Decompression bombs are refused by a pixel limit. Archive outputs are built by the engine only.
 - PDF passwords are used in memory for the one job and never stored.
-- No accounts and no tracking. History lives only on the phone.
+- No KonPDF account and no tracking. History lives only on the phone, unless the person connects their own Google Drive ([section 19](#19-google-drive-backup-optional)). Then results go straight from the phone to their Drive; KonPDF can see only the files it put there (`drive.file`), and no token or file passes through the engine.
 - Rate limiting per IP on the hosted engine; HTTPS on hosting.
 
 ---
@@ -481,7 +488,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | NW | Language detection for each language, intent and parameter extraction (sizes, dimensions, presets, ranges), plan validation, replies in the right language, unknown requests |
 | Errors | Every error code has a message in every language; unknown routes, bad input and crashes never leak status codes or stack traces |
 | API | End-to-end uploads and downloads through FastAPI's TestClient |
-| Mobile | Error mapper (no status codes, every language), format matching, size formatting, server address handling, Markdown tables → CSV, Developer Mode phone check and download states, page text joining |
+| Mobile | Error mapper (no status codes, every language), format matching, size formatting, server address handling, Markdown tables → CSV, Developer Mode phone check and download states, page text joining, Drive backup (state, waiting results, upload queue: token refresh, access ending, binned folder, offline) |
 
 ---
 
@@ -498,7 +505,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 5 | **Friendly errors in the app:** engine errors shown as they come, app-only problems (offline, server waking, no app to open a file) in all 7 languages, "Ask NW" on every error card | Done |
 | 6 | **Engine:** format detection, converters (images, PDF, documents, sheets, LibreOffice bridge), resizer, enhance, PDF tools, plan runner, friendly error catalogue in 7 languages, Dockerfile | Done |
 | 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) | Done |
-| 8 | **Tests:** engine 822 (pytest); mobile 33 (Jest) + type-check + lint | Done |
+| 8 | **Tests:** engine 822 (pytest); mobile 52 (Jest) + type-check + lint | Done |
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
@@ -506,6 +513,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 12a | **v0.0.1** test release on GitHub with the APK; gear icon for Settings; text boxes stay above the keyboard | Done |
 | 12b | **v0.0.2 – v0.0.4:** NW chat fixes, smarter built-in NW (no API key), hosted engine built in | Done |
 | 12c | **v0.0.5 (pre-release):** bottom tab bar, Scan tab (document scanner, photos → PDF), Read text on the phone, searchable PDF, Developer Mode with the on-phone AI reader (Qwen3-VL 2B) | Done |
+| 12d | **Optional Google Drive backup:** sign in with Google (`drive.file` only), KonPDF folder in the person's Drive, automatic or one-tap backup ([section 19](#19-google-drive-backup-optional)). Needs the one-time Google Cloud registration in [docs/google-drive-setup.md](docs/google-drive-setup.md) | Done (not yet in a release) |
 | 13 | Translating the app's own screen text (NW and errors are already multilingual) | Planned |
 | 14 | iOS | Later |
 
@@ -601,7 +609,45 @@ v0.0.5 was tested over USB on a **TECNO LJ8 (Android 16, 7.3 GB RAM)**:
 |---|---|---|
 | `KonScan` | `scan/ScanModule.kt` | Scanner, text reader (with Play services module install), PDF page rendering, upright resized copies, pictures → PDF (`JpegPdf.kt`), text files, clipboard |
 | `KonModel` | `model/ModelModule.kt` | Phone check (64-bit, RAM, storage, network), resumable verified downloads, keep screen on |
+| `KonDrive` | `drive/DriveModule.kt` | Optional Google Drive backup: Play services authorization (`drive.file`), token refresh and revoke, streamed uploads ([section 19](#19-google-drive-backup-optional)) |
 
 ### NW
 
 NW now sends "scan a document", "scan karo", "extract text from this photo", "make a searchable pdf" and the like (all 7 languages) to the right screen with a button (`open: "scan" | "read_text"` in its reply). "Extract the text" from a PDF or Word file is still a conversion to TXT, which needs no reading.
+
+---
+
+## 19. Google Drive backup (optional)
+
+Added after v0.0.5. **Off until someone connects it**: KonPDF still works fully without any account, and nothing leaves the phone for Google unless the person signs in.
+
+### What it does
+
+| | |
+|---|---|
+| **Connect** | **Settings → Google Drive → Connect Google Drive**: Google's own account picker and permission screen (Play services). One permission: `drive.file`, so KonPDF sees **only the files it creates** (its folder and its uploads), never anything else in the Drive. |
+| **Where files go** | A **KonPDF** folder in the person's own Drive, made the first time. It is found again by a hidden tag (`appProperties`), so renaming or moving it is fine; if it is deleted or put in the bin, KonPDF makes a new one. |
+| **Automatic backup** | On by default once connected: every new result (scans, conversions, text) is uploaded as soon as it is made. Turning it off leaves a **Save to Google Drive** button on each result. Results made before connecting can be sent with **Back up N more results**. |
+| **Result screen** | **Save to Google Drive** → *Saving to Google Drive…* → **Saved in Google Drive · Open** (opens the file, or the folder for several files). Problems show as a friendly error card. |
+| **History** | A cloud mark on entries that are in Drive. |
+| **Disconnect** | Withdraws KonPDF's access with Google (`revokeAccess`) and forgets the account. Files already in Drive stay there. |
+| **Phones without Play services** | Drive options don't appear; the Drive screen says why. |
+
+### How it works
+
+- **No secrets in the app.** Access tokens come from Play services' `AuthorizationClient` (`play-services-auth` 22.0.0). Google recognises the app by package name and signing certificate, registered once as an Android OAuth client: **[docs/google-drive-setup.md](docs/google-drive-setup.md)** (free, about 10 minutes).
+- **Uploads go phone → Drive directly** (Drive's resumable upload, streamed from the cache by the `KonDrive` module), so the converter never sees them and a 50 MB file needs no extra memory. Each file carries the entry's title in its description and its History id in `appProperties`.
+- **One at a time, in the background:** a queue (`features/drive/backup.ts`) uploads results oldest first. Tokens are fetched silently and refreshed once if Drive answers 401. Being offline, a full Drive, Drive being busy or access ending pause the whole queue; a single missing file only fails that result.
+- **Catching up:** on start-up and after reconnecting, results still waiting (new since automatic backup was turned on, or failed for a reason that can pass) are sent again.
+- **Access ending** (removed in the Google account, or a test user's 7 days running out) turns into a **Reconnect** card; new results wait and go up after reconnecting.
+- **Errors** in all 7 languages: `DRIVE_UNAVAILABLE`, `DRIVE_NOT_SET_UP`, `DRIVE_SIGNED_OUT`, `DRIVE_UNREACHABLE`, `DRIVE_FULL`, `DRIVE_BUSY`.
+
+### Code
+
+| Where | What |
+|---|---|
+| `android/.../drive/DriveModule.kt` | `KonDrive`: Play services check, authorize (account picker, silent refresh), clear token, revoke, streamed upload |
+| `src/services/drive.ts` | Drive REST v3: who is connected (`about`), find or make the folder, upload; Drive's refusals as `drive_*` codes |
+| `src/features/drive/driveSlice.ts` | Account, folder, automatic backup, per-entry backup status (persisted) |
+| `src/features/drive/backup.ts` | Connect, disconnect, the upload queue |
+| `src/screens/DriveScreen.tsx`, `src/components/DriveSave.tsx` | Settings screen; the Result screen's Drive row |

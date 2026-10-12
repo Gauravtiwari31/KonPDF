@@ -33,6 +33,8 @@ export type RootStackParamList = {
   /** Pictures or PDFs to read text from. */
   ReadText: WithFiles | undefined;
   DeveloperMode: undefined;
+  /** Optional Google Drive backup. */
+  Drive: undefined;
 };
 
 export type ScreenProps<T extends keyof RootStackParamList> =
