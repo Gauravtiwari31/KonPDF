@@ -81,9 +81,10 @@ def appVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
 /**
  * Release signing. Google Play only accepts builds signed with your private
  * upload key. Pass its four values as Gradle properties (for
- * example in ~/.gradle/gradle.properties) or environment variables. Without
- * them, release builds fall back to the debug key: fine for testing on a
- * device, rejected by Google Play.
+ * example in ~/.gradle/gradle.properties) or environment variables
+ * (docs/play-store.md). Without them, release APKs fall back to the debug
+ * key: fine for testing on a device, rejected by Google Play. App bundles
+ * (bundleRelease) exist only for Google Play, so they refuse to build without it.
  */
 def uploadKeySetting = { String name -> (findProperty(name) ?: System.getenv(name)) as String }
 def uploadKey = [
@@ -96,7 +97,13 @@ def hasUploadKey = uploadKey.values().every { it }
 if (hasUploadKey && !file(uploadKey.storeFile).isFile()) {
     throw new GradleException("KONPDF_UPLOAD_STORE_FILE points to '${uploadKey.storeFile}', which doesn't exist")
 }
-if (!hasUploadKey && gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }) {
+def requestedTasks = gradle.startParameter.taskNames.collect { it.toLowerCase() }
+if (!hasUploadKey && requestedTasks.any { it.contains("bundlerelease") }) {
+    throw new GradleException("KonPDF: bundleRelease makes the app bundle for Google Play, which needs your upload key. " +
+        "Set KONPDF_UPLOAD_STORE_FILE, KONPDF_UPLOAD_STORE_PASSWORD, KONPDF_UPLOAD_KEY_ALIAS and " +
+        "KONPDF_UPLOAD_KEY_PASSWORD (docs/play-store.md). For a test APK, use assembleRelease.")
+}
+if (!hasUploadKey && requestedTasks.any { it.contains("release") }) {
     logger.warn("KonPDF: no upload key configured (KONPDF_UPLOAD_* properties), so this release build is " +
         "signed with the debug key. It installs on devices but Google Play will reject it.")
 }

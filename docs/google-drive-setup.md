@@ -20,7 +20,7 @@ One permission (scope): `https://www.googleapis.com/auth/drive.file`. With it, K
 
 Open **Google Auth Platform** (also reachable as **APIs & Services → OAuth consent screen**) and click **Get started** if asked.
 
-1. **Branding:** app name `KonPDF`, user support email, developer contact email. Add the privacy policy and home page links when you have them (the GitHub page works as a home page).
+1. **Branding:** app name `KonPDF`, user support email, developer contact email. Home page: `https://github.com/Gauravtiwari31/KonPDF`. Privacy policy: `https://github.com/Gauravtiwari31/KonPDF/blob/main/docs/privacy-policy.md` (it already covers Drive and Google's Limited Use rules).
 2. **Audience:** **External**.
 3. **Data access → Add or remove scopes:** add `.../auth/drive.file` ("See, edit, create and delete only the specific Google Drive files you use with this app"). **Save**.
 

@@ -1,0 +1,46 @@
+KonPDF turns your phone into a pocket file desk. Scan paper into clean PDFs, read the text on any page, convert files in any direction, and resize photos to exactly what a form asks for.
+
+SCAN
+• Scan documents with automatic edge detection, cropping and clean-up, many pages in one go
+• Turn photos you already took into pages
+• Reorder, remove or add pages, then save one PDF, made right on your phone
+
+READ TEXT
+• Copy the text from photos, scans and PDFs, read on your phone (Latin and Devanagari scripts, so English, Hindi and more)
+• Edit it, save it as Word, or make a searchable PDF
+• Optional AI reader for tables, columns and messy pages, also running on your phone (Settings → Developer Mode)
+
+CONVERT
+• Images: JPG, PNG, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO and SVG
+• PDF to images, Word, text or tables, and back
+• Word, ODT, RTF, PowerPoint, Markdown and HTML to PDF
+• Excel, ODS, CSV and JSON in any direction
+• Up to 20 files at once
+
+RESIZE FOR FORMS
+• By pixels, percentage, print size (cm, mm, inches) or exact file size, for example 20–50 KB
+• One-tap presets: passport photo, Indian government form photo and signature, PAN and Aadhaar scans, US visa, Instagram, WhatsApp, YouTube and more
+• Crop, rotate, flip, and remove location data from photos
+
+ENHANCE
+• One-tap fixes for documents, low light and portraits, plus filters and sliders, with a before/after view
+
+PDF TOOLS
+• Merge, split, extract, delete, rotate and reorder pages
+• Compress to a target size, add or remove a password, watermark, page numbers
+
+NW, YOUR ASSISTANT
+• Just type what you want: "make this photo under 50 KB", "isko PDF bana do", "comprime este PDF a 1 MB"
+• Understands English, Hindi, Hinglish, Spanish, French, German and Portuguese, and explains any problem in plain words
+
+OPTIONAL GOOGLE DRIVE BACKUP
+• Sign in with Google to keep your results in a KonPDF folder in your own Drive, automatically or with one tap
+• KonPDF can see only the files it puts there, nothing else in your Drive
+
+PRIVATE BY DESIGN
+• No account, no ads, no tracking
+• Scanning and reading text happen on your phone
+• Files sent for converting are deleted from the converter after 30 minutes
+• History stays on your phone
+
+Converting, resizing, enhancing and the PDF tools need an internet connection. Scanning and reading text work offline.

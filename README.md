@@ -18,12 +18,16 @@ Install it (allow installing from this source when Android asks) and open it: fr
 
 To use a different engine (your own Render service, or your computer while developing), change it in **Settings → Converter engine**; that choice is saved and kept across updates.
 
+## Google Play
+
+The project is ready for Google Play: target API 36, 16 KB page support, a signed app bundle (`bundleRelease`, with your upload key), a [privacy policy](docs/privacy-policy.md), and the store listing (text, icon, feature graphic) in `mobile/fastlane/metadata/android/en-US/`. The steps that need the owner (developer account, upload key, screenshots, Play Console forms with the Data safety answers) are in **[docs/play-store.md](docs/play-store.md)**.
+
 ## Repository layout
 
 ```
 .
 ├── detail.md            what KonPDF is, every feature, architecture, build plan
-├── docs/                deploying the engine on Render, setting up Google Drive backup
+├── docs/                Render deployment, Google Drive setup, Google Play guide, privacy policy
 ├── engine/              Python conversion engine (FastAPI)
 │   ├── model.py         NW, the assistant (built in: no API key, no download)
 │   ├── app/
@@ -38,6 +42,8 @@ To use a different engine (your own Render service, or your computer while devel
 │   └── Dockerfile       Python + LibreOffice + Noto fonts
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module
+    ├── fastlane/        Google Play listing: text, icon, feature graphic, release notes
+    ├── scripts/         build settings, Play Store graphics
     └── src/
         ├── screens/     Welcome · Home · Convert · Resize · Enhance · PDF tools · NW · Result · History · Settings · Google Drive
         ├── components/  DoAll's neo-brutalist UI kit, recoloured "Ink & Volt"

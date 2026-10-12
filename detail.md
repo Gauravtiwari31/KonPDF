@@ -477,6 +477,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 - PDF passwords are used in memory for the one job and never stored.
 - No KonPDF account and no tracking. History lives only on the phone, unless the person connects their own Google Drive ([section 19](#19-google-drive-backup-optional)). Then results go straight from the phone to their Drive; KonPDF can see only the files it put there (`drive.file`), and no token or file passes through the engine.
 - Rate limiting per IP on the hosted engine; HTTPS on hosting.
+- The public **[privacy policy](docs/privacy-policy.md)** (Google Play, Google's sign-in screen) says all of this in plain words.
 
 ---
 
@@ -514,6 +515,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 12b | **v0.0.2 – v0.0.4:** NW chat fixes, smarter built-in NW (no API key), hosted engine built in | Done |
 | 12c | **v0.0.5 (pre-release):** bottom tab bar, Scan tab (document scanner, photos → PDF), Read text on the phone, searchable PDF, Developer Mode with the on-phone AI reader (Qwen3-VL 2B) | Done |
 | 12d | **Optional Google Drive backup:** sign in with Google (`drive.file` only), KonPDF folder in the person's Drive, automatic or one-tap backup ([section 19](#19-google-drive-backup-optional)). Needs the one-time Google Cloud registration in [docs/google-drive-setup.md](docs/google-drive-setup.md) | Done (not yet in a release) |
+| 12e | **Google Play ready:** target API 36, 16 KB pages checked, app bundles signed only with the upload key, [privacy policy](docs/privacy-policy.md), store listing and graphics (`mobile/fastlane/metadata`, drawn by `mobile/scripts/make-store-graphics.py`), [publishing guide](docs/play-store.md) with the Data safety answers | Done (account, upload key, screenshots and Play Console forms are the owner's steps) |
 | 13 | Translating the app's own screen text (NW and errors are already multilingual) | Planned |
 | 14 | iOS | Later |
 

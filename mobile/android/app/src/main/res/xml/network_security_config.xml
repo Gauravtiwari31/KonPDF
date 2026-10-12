@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The hosted DoAll API (the default server in Play and release builds) is
-  HTTPS-only, so everything the published app sends is encrypted in transit.
+  The hosted KonPDF engine (the default in every build), Google Drive and the
+  AI reader's model download are all HTTPS, so everything the app sends by
+  default is encrypted in transit.
 
-  Plain HTTP stays allowed for one feature: the welcome screen's server button
-  can point the app at a backend the user runs themselves, which usually means
+  Plain HTTP stays allowed for one feature: Settings → Converter engine can
+  point the app at an engine the person runs themselves, which usually means
   http:// on a home network or the emulator's 10.0.2.2. React Native's Gradle
   plugin disables cleartext traffic in release builds, and Android has no way
   to allow it for "private networks only", so it is allowed here for any host.
-  It only ever applies to an address the user typed in themselves.
+  It only ever applies to an address the person typed in themselves.
   (On Android 7+ this config takes precedence over android:usesCleartextTraffic.)
 -->
 <network-security-config>

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12+: keep everything the app stores (session tokens, cached profile,
-  preferences) out of cloud backups and device-to-device transfers. Tasks live
-  on the server, so a new phone only needs the user to log in again.
+  Android 12+: keep everything the app stores (history, cached results,
+  preferences, the connected Google Drive account, the AI reader's model) out
+  of cloud backups and device-to-device transfers, as the privacy policy
+  promises. Results people want to keep can go to their own Google Drive.
   allowBackup="false" in the manifest covers cloud backup only; without these
   rules a phone-to-phone transfer would still copy the app's data.
 -->

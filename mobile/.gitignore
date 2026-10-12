@@ -33,6 +33,8 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+# Google Play upload keys: keep them out of the repository (docs/play-store.md)
+*.jks
 *.aab
 # Release files CI copies next to package.json
 /KonPDF.apk

@@ -1,0 +1,6 @@
+First release on Google Play:
+• Scan documents to PDF and read the text on your phone
+• Convert images, PDFs, Word files, sheets and more
+• Resize photos to exact pixels, centimetres or KB for forms
+• PDF tools, photo enhance and the NW assistant in 7 languages
+• New: optional Google Drive backup
