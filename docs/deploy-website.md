@@ -49,7 +49,7 @@ The app keeps using the onrender.com address, which keeps working.
 ## 4. AdSense
 
 1. Sign up at [adsense.google.com](https://adsense.google.com) and add your site. AdSense normally asks for the main domain, **notwork.world**, which also covers konpdf.notwork.world. Google reviews the site you add, so notwork.world should have real content or a clear link to KonPDF.
-2. Copy your publisher ID (`ca-pub-` followed by 16 digits) into `"adsenseClient"` in `web/site.config.json`, and push. Every page then loads the AdSense script, and `konpdf.notwork.world/ads.txt` is created. If AdSense says ads.txt is missing on **notwork.world**, put the same line at `notwork.world/ads.txt` on whatever hosts the main domain: `google.com, pub-<your 16 digits>, DIRECT, f08c47fec0942fa0`.
+2. Copy your publisher ID (`pub-` or `ca-pub-` followed by 16 digits; either works) into `"adsenseClient"` in `web/site.config.json`, and push. Every page then loads the AdSense script, and `konpdf.notwork.world/ads.txt` is created. If AdSense says ads.txt is missing on **notwork.world**, put the same line at `notwork.world/ads.txt` on whatever hosts the main domain: `google.com, pub-<your 16 digits>, DIRECT, f08c47fec0942fa0`.
 3. Once approved: **Ads → By site → konpdf…** → turn on **Auto ads**. Google then places the ads itself; the pages need no ad code of their own.
 4. **Privacy & messaging → European regulations → Create message**, and publish it. Google requires a consent message for visitors in the EEA, the UK and Switzerland, and the website's privacy policy says one is shown.
 5. Optional: put a contact email in `"contactEmail"` in `web/site.config.json`, so the privacy, terms and about pages show it. Otherwise they point to GitHub issues.

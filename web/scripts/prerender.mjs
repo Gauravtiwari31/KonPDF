@@ -11,7 +11,9 @@ const site = JSON.parse(readFileSync(join(root, 'site.config.json'), 'utf8'));
 const { pages } = await import(pathToFileURL(join(root, 'dist-ssr', 'entry-server.js')).href);
 
 const escape = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-const adsense = /^ca-pub-\d{10,20}$/.test(site.adsenseClient) ? site.adsenseClient : null;
+// AdSense shows the ID as "pub-…" or "ca-pub-…"; the script wants "ca-pub-…".
+const pub = (site.adsenseClient || '').trim().replace(/^ca-/, '');
+const adsense = /^pub-\d{10,20}$/.test(pub) ? `ca-${pub}` : null;
 const shell = readFileSync(join(dist, 'index.html'), 'utf8');
 
 for (const page of pages) {
