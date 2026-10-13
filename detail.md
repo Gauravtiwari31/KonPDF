@@ -514,9 +514,9 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 12a | **v0.0.1** test release on GitHub with the APK; gear icon for Settings; text boxes stay above the keyboard | Done |
 | 12b | **v0.0.2 – v0.0.4:** NW chat fixes, smarter built-in NW (no API key), hosted engine built in | Done |
 | 12c | **v0.0.5 (pre-release):** bottom tab bar, Scan tab (document scanner, photos → PDF), Read text on the phone, searchable PDF, Developer Mode with the on-phone AI reader (Qwen3-VL 2B) | Done |
-| 12d | **Optional Google Drive backup:** sign in with Google (`drive.file` only), KonPDF folder in the person's Drive, automatic or one-tap backup ([section 19](#19-google-drive-backup-optional)). Needs the one-time Google Cloud registration in [docs/google-drive-setup.md](docs/google-drive-setup.md) | Done (not yet in a release) |
+| 12d | **Optional Google Drive backup:** sign in with Google (`drive.file` only), KonPDF folder in the person's Drive, automatic or one-tap backup ([section 19](#19-google-drive-backup-optional)). Needs the one-time Google Cloud registration in [docs/google-drive-setup.md](docs/google-drive-setup.md) | Done (v0.0.6) |
 | 12e | **Google Play ready:** target API 36, 16 KB pages checked, app bundles signed only with the upload key, [privacy policy](docs/privacy-policy.md), store listing and graphics (`mobile/fastlane/metadata`, drawn by `mobile/scripts/make-store-graphics.py`), [publishing guide](docs/play-store.md) with the Data safety answers | Done (account, upload key, screenshots and Play Console forms are the owner's steps) |
-| 12f | **Smarter text handling:** NW sends photos and scanned PDFs to Read text (on the phone) when someone wants their words or a Word file, says why, and starts reading with the file already in; "make it editable" means Word; "watermark text …" is no longer read as TXT. NW chat: files travel with the message they were sent with, as small chips. Read text: the standard reader's lines are laid out again in reading order (form rows, two columns, paragraphs, split words), and the text scrolls with the page, with an Edit button | Done |
+| 12f | **v0.0.6 · Smarter text handling:** NW sends photos and scanned PDFs to Read text (on the phone) when someone wants their words or a Word file, says why, and starts reading with the file already in; "make it editable" means Word; "watermark text …" is no longer read as TXT. NW chat: files travel with the message they were sent with, as small chips. Read text: the standard reader's lines are laid out again in reading order (form rows, two columns, paragraphs, split words), and the text scrolls with the page, with an Edit button | Done |
 | 13 | Translating the app's own screen text (NW and errors are already multilingual) | Planned |
 | 14 | iOS | Later |
 
@@ -622,7 +622,7 @@ NW now sends "scan a document", "scan karo", "extract text from this photo", "ma
 
 ## 19. Google Drive backup (optional)
 
-Added after v0.0.5. **Off until someone connects it**: KonPDF still works fully without any account, and nothing leaves the phone for Google unless the person signs in.
+Added in **v0.0.6**. **Off until someone connects it**: KonPDF still works fully without any account, and nothing leaves the phone for Google unless the person signs in.
 
 ### What it does
 
