@@ -506,7 +506,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 5 | **Friendly errors in the app:** engine errors shown as they come, app-only problems (offline, server waking, no app to open a file) in all 7 languages, "Ask NW" on every error card | Done |
 | 6 | **Engine:** format detection, converters (images, PDF, documents, sheets, LibreOffice bridge), resizer, enhance, PDF tools, plan runner, friendly error catalogue in 7 languages, Dockerfile | Done |
 | 7 | **NW (`engine/model.py`):** core tier (language detection, intent and parameter extraction, plans, FAQ, error explanations) | Done |
-| 8 | **Tests:** engine 822 (pytest); mobile 52 (Jest) + type-check + lint | Done |
+| 8 | **Tests:** engine 842 (pytest); mobile 58 (Jest) + type-check + lint | Done |
 | 9 | **Debug APK built locally** on Windows (`mobile/android/app/build/outputs/apk/debug/app-debug.apk`, arm64) | Done |
 | 10 | Recipes (save an NW plan as a one-tap button) | Next |
 | 11 | CI (engine tests, mobile lint / type-check / tests) and APK release workflow | Next |
@@ -516,6 +516,7 @@ Same as DoAll: **neo-brutalist "paper & ink"**. Thick outlines, **hard un-blurre
 | 12c | **v0.0.5 (pre-release):** bottom tab bar, Scan tab (document scanner, photos → PDF), Read text on the phone, searchable PDF, Developer Mode with the on-phone AI reader (Qwen3-VL 2B) | Done |
 | 12d | **Optional Google Drive backup:** sign in with Google (`drive.file` only), KonPDF folder in the person's Drive, automatic or one-tap backup ([section 19](#19-google-drive-backup-optional)). Needs the one-time Google Cloud registration in [docs/google-drive-setup.md](docs/google-drive-setup.md) | Done (not yet in a release) |
 | 12e | **Google Play ready:** target API 36, 16 KB pages checked, app bundles signed only with the upload key, [privacy policy](docs/privacy-policy.md), store listing and graphics (`mobile/fastlane/metadata`, drawn by `mobile/scripts/make-store-graphics.py`), [publishing guide](docs/play-store.md) with the Data safety answers | Done (account, upload key, screenshots and Play Console forms are the owner's steps) |
+| 12f | **Smarter text handling:** NW sends photos and scanned PDFs to Read text (on the phone) when someone wants their words or a Word file, says why, and starts reading with the file already in; "make it editable" means Word; "watermark text …" is no longer read as TXT. NW chat: files travel with the message they were sent with, as small chips. Read text: the standard reader's lines are laid out again in reading order (form rows, two columns, paragraphs, split words), and the text scrolls with the page, with an Edit button | Done |
 | 13 | Translating the app's own screen text (NW and errors are already multilingual) | Planned |
 | 14 | iOS | Later |
 
@@ -532,7 +533,7 @@ cd engine
 python -m venv .venv
 .venv/Scripts/pip install -r requirements-dev.txt        # macOS/Linux: .venv/bin/pip
 .venv/Scripts/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-.venv/Scripts/python -m pytest                            # 822 tests
+.venv/Scripts/python -m pytest                            # 842 tests
 
 # Android app (Node 22, JDK 17, Android SDK)
 cd mobile

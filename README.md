@@ -38,7 +38,7 @@ The project is ready for Google Play: target API 36, 16 KB page support, a signe
 │   │   ├── pipeline.py  runs single tools and NW's multi-step plans (whitelisted)
 │   │   ├── converters/  images · pdf · documents · sheets · office (LibreOffice)
 │   │   └── tools/       resize · enhance · pdf_tools
-│   ├── tests/           815 tests
+│   ├── tests/           842 tests
 │   └── Dockerfile       Python + LibreOffice + Noto fonts
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module

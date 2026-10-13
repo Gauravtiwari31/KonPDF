@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import { engine, NwPlan, NwReply } from '../api/engine';
 import { FriendlyError, toFriendlyError } from '../api/errors';
 import { ErrorCard } from '../components/ErrorCard';
-import { FileRow } from '../components/FileRow';
+import { FileChip } from '../components/FileChip';
 import {
   AppText,
   BrutalBox,
@@ -30,6 +30,13 @@ interface Message {
   open?: string | null;
   /** NW's greeting: shown until the person sends their first message. */
   intro?: boolean;
+  /**
+   * Yours: the files you sent with it. NW's: the files its plan or button
+   * works on, so every message keeps its own files.
+   */
+  files?: LocalFile[];
+  /** With open "read_text": the plain text, or a Word file. */
+  goal?: 'text' | 'word' | null;
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -76,9 +83,13 @@ const id = () => `m${++nextId}`;
 export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
   const t = useTheme();
   const lang = useLang();
-  const [attached, setAttached] = useState<LocalFile[]>(
+  // Files waiting in the message box, not sent yet.
+  const [pending, setPending] = useState<LocalFile[]>(
     route.params?.files ?? [],
   );
+  // The files the conversation is about: the last ones sent. Follow-ups
+  // ("now make it smaller") work on these without attaching them again.
+  const [context, setContext] = useState<LocalFile[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState(route.params?.prompt ?? '');
   const [thinking, setThinking] = useState(false);
@@ -94,23 +105,28 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
     }
   }, [keyboardHeight]);
 
-  const addReply = useCallback((reply: NwReply, intro = false) => {
-    setMessages(m => [
-      ...m,
-      {
-        id: id(),
-        role: 'nw',
-        text: reply.reply,
-        plan: reply.plan,
-        suggestions: reply.suggestions,
-        open: reply.open,
-        intro,
-      },
-    ]);
-  }, []);
+  const addReply = useCallback(
+    (reply: NwReply, intro = false, files: LocalFile[] = []) => {
+      setMessages(m => [
+        ...m,
+        {
+          id: id(),
+          role: 'nw',
+          text: reply.reply,
+          plan: reply.plan,
+          suggestions: reply.suggestions,
+          open: reply.open,
+          goal: reply.goal,
+          intro,
+          files,
+        },
+      ]);
+    },
+    [],
+  );
 
   const ask = useCallback(
-    async (text: string, history: Message[], files: LocalFile[] = attached) => {
+    async (text: string, history: Message[], files: LocalFile[]) => {
       setThinking(true);
       setError(null);
       try {
@@ -126,6 +142,8 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
               .slice(-8)
               .map(m => ({ role: m.role, text: m.text })),
           }),
+          false,
+          files,
         );
       } catch (e) {
         setError(toFriendlyError(e, lang));
@@ -133,7 +151,7 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         setThinking(false);
       }
     },
-    [addReply, attached, lang],
+    [addReply, lang],
   );
 
   // Opening line: an error explanation, or NW's greeting.
@@ -156,33 +174,47 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
     if (!message || thinking) {
       return;
     }
-    const mine: Message = { id: id(), role: 'user', text: message };
+    // New files go with this message (and leave the box); otherwise it is
+    // about the files sent before.
+    const files = pending.length ? pending : context;
+    const mine: Message = {
+      id: id(),
+      role: 'user',
+      text: message,
+      files: pending.length ? pending : undefined,
+    };
     // The greeting has done its job once the conversation starts.
     const history = messages.filter(m => !m.intro);
     setMessages([...history, mine]);
     setDraft('');
-    ask(message, history);
+    setPending([]);
+    setContext(files);
+    ask(message, history, files);
   };
 
   const attach = async () => {
     try {
       const more = await fileService.pick(['*/*'], true);
-      if (more.length) {
-        const next = [...attached, ...more];
-        setAttached(next);
-        // Asked before attaching? Plan that request again for these files,
-        // so the plan fits them (a PDF job for a PDF, a photo job for a photo).
-        const last = [...messages].reverse().find(m => m.role === 'user');
-        if (last && !thinking) {
-          ask(last.text, messages.slice(0, messages.indexOf(last)), next);
-        }
+      if (!more.length) {
+        return;
+      }
+      // Asked before attaching ("convert to pdf", then +)? Send the files for
+      // that request straight away, so NW plans it for exactly these files.
+      const last = [...messages].reverse().find(m => m.role === 'user');
+      if (last?.text && !pending.length && !context.length && !thinking) {
+        const files = [...more];
+        setMessages(m => [...m, { id: id(), role: 'user', text: '', files }]);
+        setContext(files);
+        ask(last.text, messages.slice(0, messages.indexOf(last)), files);
+      } else {
+        setPending(p => [...p, ...more]);
       }
     } catch (e) {
       setError(toFriendlyError(e, lang));
     }
   };
 
-  const runPlan = (plan: NwPlan) => {
+  const runPlan = (plan: NwPlan, files: LocalFile[]) => {
     const first = plan.steps[plan.steps.length - 1]?.tool;
     const family =
       first === 'resize'
@@ -192,8 +224,8 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         : first === 'convert'
         ? 'image'
         : 'pdf';
-    job.run(attached, { title: plan.summary, family }, progress =>
-      engine.run(attached, plan, progress),
+    job.run(files, { title: plan.summary, family }, progress =>
+      engine.run(files, plan, progress),
     );
   };
 
@@ -206,7 +238,16 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
           { backgroundColor: t.colors.inverse },
         ]}
       >
-        <AppText color={t.colors.onInverse}>{item.text}</AppText>
+        {item.text ? (
+          <AppText color={t.colors.onInverse}>{item.text}</AppText>
+        ) : null}
+        {item.files?.length ? (
+          <View style={styles.fileChips}>
+            {item.files.map((f, i) => (
+              <FileChip key={`${f.path}-${i}`} file={f} />
+            ))}
+          </View>
+        ) : null}
       </View>
     ) : (
       <View style={styles.theirsWrap}>
@@ -239,18 +280,18 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
                 </View>
               </View>
             ))}
-            {attached.length ? (
+            {item.files?.length ? (
               <Button
                 title={
                   job.busy
                     ? phaseLabel(job.phase, job.progress)
-                    : `Run on ${attached.length} file${
-                        attached.length > 1 ? 's' : ''
+                    : `Run on ${item.files.length} file${
+                        item.files.length > 1 ? 's' : ''
                       }`
                 }
                 icon="bolt"
                 size="md"
-                onPress={() => runPlan(item.plan!)}
+                onPress={() => runPlan(item.plan!, item.files!)}
                 disabled={job.busy}
               />
             ) : (
@@ -272,7 +313,11 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
             onPress={() =>
               item.open === 'scan'
                 ? navigation.navigate('Main', { screen: 'Scan' })
-                : navigation.navigate('ReadText', { files: attached })
+                : navigation.navigate('ReadText', {
+                    files: item.files,
+                    autoStart: !!item.files?.length,
+                    goal: item.goal,
+                  })
             }
           />
         ) : null}
@@ -347,21 +392,22 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         }
       />
 
-      {attached.length ? (
-        <View style={styles.attached}>
-          {attached.slice(0, 3).map((f, i) => (
-            <FileRow
+      {pending.length ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={styles.pendingBar}
+          contentContainerStyle={styles.pending}
+        >
+          {pending.map((f, i) => (
+            <FileChip
               key={`${f.path}-${i}`}
               file={f}
-              onRemove={() => setAttached(a => a.filter((_, j) => j !== i))}
+              onRemove={() => setPending(p => p.filter((_, j) => j !== i))}
             />
           ))}
-          {attached.length > 3 ? (
-            <AppText variant="mono" color="textMuted">
-              + {attached.length - 3} more
-            </AppText>
-          ) : null}
-        </View>
+        </ScrollView>
       ) : null}
 
       <View style={[styles.inputBar, { borderTopColor: t.colors.lineSoft }]}>
@@ -369,7 +415,13 @@ export function NwScreen({ navigation, route }: ScreenProps<'Nw'>) {
         <TextField
           value={draft}
           onChangeText={setDraft}
-          placeholder="Tell NW what you need…"
+          placeholder={
+            pending.length
+              ? `What should I do with ${
+                  pending.length === 1 ? 'this file' : 'these files'
+                }?`
+              : 'Tell NW what you need…'
+          }
           onSubmitEditing={() => send()}
           returnKeyType="send"
           containerStyle={styles.flex}
@@ -412,7 +464,9 @@ const styles = StyleSheet.create({
   },
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   footer: { gap: 12, marginTop: 4 },
-  attached: { paddingHorizontal: 20, gap: 8, paddingBottom: 8 },
+  pendingBar: { flexGrow: 0 },
+  pending: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
+  fileChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',

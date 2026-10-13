@@ -212,3 +212,61 @@ def test_plans_match_what_people_mean(client, samples, message, kind, steps):
         for key, value in expected.items():
             assert step["params"].get(key) == value, (key, got)
     assert "format" not in got[0]["params"] or message != "neet photo banana hai"
+
+
+# Wanting the words: photos and scans are read on the phone, real PDFs convert.
+_SCAN = [{"name": "Scan 2026-10-08 23.17.pdf", "mime": "application/pdf", "size": 900_000}]
+_PHOTO = [{"name": "notes.jpg", "mime": "image/jpeg", "size": 900_000}]
+_REPORT = [{"name": "Report.pdf", "mime": "application/pdf", "size": 900_000}]
+
+
+@pytest.mark.parametrize(
+    "message, files, goal",
+    [
+        ("convert to text", _PHOTO, "text"),
+        ("get the text out of this", _PHOTO, "text"),
+        ("type out this page", _PHOTO, "text"),
+        ("isme kya likha hai", _PHOTO, "text"),
+        ("convert to word", _PHOTO, "word"),
+        ("convert this photo to word document", _PHOTO, "word"),
+        ("make this image editable", _PHOTO, "word"),
+        ("isko word mein badlo", _PHOTO, "word"),
+        ("convert this scan to word", _SCAN, "word"),
+        ("extract text", _SCAN, "text"),
+        ("what does it say", _REPORT, "text"),
+        ("convierte a texto", _PHOTO, "text"),
+    ],
+)
+def test_words_in_photos_and_scans_are_read_on_the_phone(client, message, files, goal):
+    reply = client.post("/api/nw/chat", json={"message": message, "files": files}).json()
+    assert reply["open"] == "read_text", reply["reply"]
+    assert reply["goal"] == goal
+    assert reply["plan"] is None
+    assert files[0]["name"] in reply["reply"]  # "… is already added"
+
+
+@pytest.mark.parametrize(
+    "message, files, to",
+    [
+        ("convert to text", _REPORT, "txt"),
+        ("pdf to word", _REPORT, "docx"),
+        ("make it editable", _REPORT, "docx"),
+        ("put the picture in a word file", _PHOTO, "docx"),
+        ("convert to pdf", _PHOTO, "pdf"),
+    ],
+)
+def test_real_text_and_pictures_still_convert(client, message, files, to):
+    reply = client.post("/api/nw/chat", json={"message": message, "files": files}).json()
+    assert reply["plan"], reply["reply"]
+    assert reply["plan"]["steps"][-1]["params"]["to"] == to
+
+
+def test_pdf_to_word_mentions_scans(client):
+    reply = client.post("/api/nw/chat", json={"message": "pdf to word", "files": _REPORT}).json()
+    assert "scan" in reply["reply"].lower()
+
+
+@pytest.mark.parametrize("message", ["add watermark text CONFIDENTIAL", "watermark with text CONFIDENTIAL"])
+def test_watermark_text_is_not_a_txt_conversion(client, message):
+    reply = client.post("/api/nw/chat", json={"message": message, "files": _SCAN}).json()
+    assert [(s["tool"], s["params"].get("text")) for s in reply["plan"]["steps"]] == [("watermark", "CONFIDENTIAL")]

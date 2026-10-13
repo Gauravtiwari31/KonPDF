@@ -97,9 +97,14 @@ export interface NwReply {
   engine: string;
   /** A screen of the app that does this on the phone: "scan" or "read_text". */
   open?: string | null;
+  /** With open "read_text": what the person is after, the plain text or a Word file. */
+  goal?: 'text' | 'word' | null;
 }
 
-export type JobProgress =(phase: 'upload' | 'work' | 'download', ratio: number) => void;
+export type JobProgress = (
+  phase: 'upload' | 'work' | 'download',
+  ratio: number,
+) => void;
 
 function formData(inputs: LocalFile[], fields: Record<string, unknown>) {
   const form = new FormData();
@@ -113,7 +118,10 @@ function formData(inputs: LocalFile[], fields: Record<string, unknown>) {
   }
   for (const [key, value] of Object.entries(fields)) {
     if (value !== undefined) {
-      form.append(key, typeof value === 'string' ? value : JSON.stringify(value));
+      form.append(
+        key,
+        typeof value === 'string' ? value : JSON.stringify(value),
+      );
     }
   }
   return form;
@@ -190,8 +198,11 @@ export const engine = {
 
   /** A small, fast JPEG of one image with the enhance options applied. */
   enhancePreview: async (input: LocalFile, options: Record<string, unknown>) =>
-    (await runJob('/enhance', [input], { options: { ...options, preview: true } }))
-      .outputs[0],
+    (
+      await runJob('/enhance', [input], {
+        options: { ...options, preview: true },
+      })
+    ).outputs[0],
 
   pdf: (
     tool: string,

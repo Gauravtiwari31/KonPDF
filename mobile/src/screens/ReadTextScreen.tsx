@@ -18,9 +18,18 @@ import {
   useToast,
 } from '../components/ui';
 import { checkDevice } from '../features/devmode/model';
-import { getDeviceInfo, isAiReaderReady } from '../features/devmode/useAiReaderModel';
+import {
+  getDeviceInfo,
+  isAiReaderReady,
+} from '../features/devmode/useAiReaderModel';
 import { setReader } from '../features/preferences/preferencesSlice';
-import { baseName, joinPages, preparePages, STANDARD_MAX_SIDE } from '../features/scan/pages';
+import { layoutText } from '../features/scan/layout';
+import {
+  baseName,
+  joinPages,
+  preparePages,
+  STANDARD_MAX_SIDE,
+} from '../features/scan/pages';
 import { ACCEPT } from '../features/tools/catalog';
 import { phaseLabel, useJob } from '../hooks/useJob';
 import { useLang } from '../hooks/useLang';
@@ -57,7 +66,9 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
   const [inputs, setInputs] = useState<LocalFile[]>(route.params?.files ?? []);
   const [aiAvailable, setAiAvailable] = useState(false);
   const [reader, setReaderState] = useState<Reader>('standard');
-  const [script, setScript] = useState<Script>(lang === 'hi' ? 'devanagari' : 'latin');
+  const [script, setScript] = useState<Script>(
+    lang === 'hi' ? 'devanagari' : 'latin',
+  );
   const [stage, setStage] = useState<Stage>('setup');
   const [status, setStatus] = useState('');
   const [progress, setProgress] = useState(0);
@@ -68,6 +79,16 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
   const [ocr, setOcr] = useState<OcrPage[]>([]);
   const [skipped, setSkipped] = useState(0);
   const [error, setError] = useState<FriendlyError | null>(null);
+  // The text is shown as a page you scroll and long-press to copy; Edit
+  // turns it into a text box. (An always-on text box inside the scrolling
+  // screen grabbed every touch: no scrolling, and it selected text instead.)
+  const [editing, setEditing] = useState(false);
+  // Sent here by NW with the files: start reading by itself, once we know
+  // which reader to use.
+  const autoStart = route.params?.autoStart && inputs.length > 0;
+  const goal = route.params?.goal;
+  const [readerKnown, setReaderKnown] = useState(!developerMode);
+  const started = useRef(false);
   const cancelled = useRef(false);
 
   useEffect(() => {
@@ -75,12 +96,16 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
       return;
     }
     (async () => {
-      const [ready, info] = await Promise.all([isAiReaderReady(), getDeviceInfo()]);
+      const [ready, info] = await Promise.all([
+        isAiReaderReady(),
+        getDeviceInfo(),
+      ]);
       const ok = ready && !!info && checkDevice(info, true).ok;
       setAiAvailable(ok);
       if (ok && preferred === 'ai') {
         setReaderState('ai');
       }
+      setReaderKnown(true);
     })();
   }, [developerMode, preferred]);
 
@@ -102,11 +127,15 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
     () => (usedReader === 'ai' ? markdownTables(text) : []),
     [text, usedReader],
   );
-  const words = useMemo(() => (text.trim() ? text.trim().split(/\s+/).length : 0), [text]);
+  const words = useMemo(
+    () => (text.trim() ? text.trim().split(/\s+/).length : 0),
+    [text],
+  );
   const name = baseName(inputs);
 
   const read = async () => {
     setError(null);
+    setEditing(false);
     cancelled.current = false;
     setStage('reading');
     setProgress(0);
@@ -141,14 +170,15 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
                 setLive(soFar);
               }
             },
-            ratio => setStatus(`Loading the AI reader… ${Math.round(ratio * 100)} %`),
+            ratio =>
+              setStatus(`Loading the AI reader… ${Math.round(ratio * 100)} %`),
           );
           texts.push(pageText);
           setLive('');
         } else {
           const reading = await scan.readText(page, script);
           readings.push(reading);
-          texts.push(reading.text);
+          texts.push(layoutText(reading));
         }
       }
       setPages(prepared.pages.slice(0, texts.length));
@@ -162,6 +192,15 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
       setStage('setup');
     }
   };
+
+  useEffect(() => {
+    if (autoStart && readerKnown && !started.current) {
+      started.current = true;
+      read();
+    }
+    // read() uses the reader chosen by the time it's known; run once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, readerKnown]);
 
   const stop = () => {
     cancelled.current = true;
@@ -184,47 +223,75 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
 
   const saveText = () =>
     act(async () => {
-      finish(inputs, [await textFile()], { title: `Text · ${name}`, family: 'document', kind: 'text' });
+      finish(inputs, [await textFile()], {
+        title: `Text · ${name}`,
+        family: 'document',
+        kind: 'text',
+      });
     });
 
   const toWord = () =>
     act(async () => {
       const txt = await textFile();
-      await job.run([txt], { title: 'Text → Word', family: 'document', kind: 'text' }, p =>
-        engine.convert([txt], 'docx', {}, p),
+      await job.run(
+        [txt],
+        { title: 'Text → Word', family: 'document', kind: 'text' },
+        p => engine.convert([txt], 'docx', {}, p),
       );
     });
 
   const toSheet = () =>
     act(async () => {
-      const csv = await scan.writeText(tablesToCsv(tables), `${name} tables.csv`);
-      await job.run([csv], { title: 'Tables → Excel', family: 'sheet', kind: 'text' }, p =>
-        engine.convert([csv], 'xlsx', {}, p),
+      const csv = await scan.writeText(
+        tablesToCsv(tables),
+        `${name} tables.csv`,
+      );
+      await job.run(
+        [csv],
+        { title: 'Tables → Excel', family: 'sheet', kind: 'text' },
+        p => engine.convert([csv], 'xlsx', {}, p),
       );
     });
 
   const toSearchablePdf = () =>
-    job.run(pages, { title: 'Searchable PDF', family: 'pdf', kind: 'text' }, p =>
-      engine.pdf(
-        'searchable',
-        pages,
-        {
-          name,
-          ocr: ocr.map(page => ({
-            width: page.width,
-            height: page.height,
-            lines: ocrLines(page).map(l => ({ text: l.text, box: l.box })),
-          })),
-        },
-        p,
-      ),
+    job.run(
+      pages,
+      { title: 'Searchable PDF', family: 'pdf', kind: 'text' },
+      p =>
+        engine.pdf(
+          'searchable',
+          pages,
+          {
+            name,
+            ocr: ocr.map(page => ({
+              width: page.width,
+              height: page.height,
+              lines: ocrLines(page).map(l => ({ text: l.text, box: l.box })),
+            })),
+          },
+          p,
+        ),
     );
 
   const busy = stage === 'reading' || job.busy;
 
+  const wordButton = (
+    <Button
+      title={job.busy ? phaseLabel(job.phase, job.progress) : 'Save as Word'}
+      icon="doc"
+      variant={goal === 'word' ? 'primary' : 'dark'}
+      onPress={toWord}
+      disabled={!text.trim() || busy}
+      loading={job.busy}
+    />
+  );
+
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <ScreenHeader kicker="On your phone" title="Read text" />
 
         {stage !== 'done' ? (
@@ -239,7 +306,9 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
             <SectionLabel style={styles.section}>Reader</SectionLabel>
             <Segmented<Reader>
               value={reader}
-              onChange={next => (next === 'standard' || aiAvailable) && chooseReader(next)}
+              onChange={next =>
+                (next === 'standard' || aiAvailable) && chooseReader(next)
+              }
               options={[
                 { value: 'standard', label: 'Standard', icon: 'bolt' },
                 { value: 'ai', label: 'AI reader', icon: 'chip' },
@@ -270,8 +339,13 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
                     onPress={() => setScript('devanagari')}
                   />
                 </View>
-                <AppText variant="caption" color="textMuted" style={styles.hint}>
-                  Devanagari also reads English mixed in, like on forms and bills.
+                <AppText
+                  variant="caption"
+                  color="textMuted"
+                  style={styles.hint}
+                >
+                  Devanagari also reads English mixed in, like on forms and
+                  bills.
                 </AppText>
               </>
             ) : null}
@@ -305,7 +379,13 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
                     {live}
                   </AppText>
                 ) : null}
-                <Button title="Stop" variant="outline" size="md" icon="pause" onPress={stop} />
+                <Button
+                  title="Stop"
+                  variant="outline"
+                  size="md"
+                  icon="pause"
+                  onPress={stop}
+                />
               </BrutalBox>
             ) : (
               <Button
@@ -322,8 +402,8 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
           <>
             <View style={styles.meta}>
               <AppText variant="mono" color="textMuted">
-                {pages.length} {pages.length === 1 ? 'page' : 'pages'} · {words} words ·{' '}
-                {usedReader === 'ai' ? 'AI reader' : 'standard reader'}
+                {pages.length} {pages.length === 1 ? 'page' : 'pages'} · {words}{' '}
+                words · {usedReader === 'ai' ? 'AI reader' : 'standard reader'}
               </AppText>
               <Button
                 title="Read again"
@@ -338,40 +418,81 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
               <View style={[styles.note, { borderColor: t.colors.line }]}>
                 <Icon name="info" size={18} color={t.colors.text} />
                 <AppText variant="caption" style={styles.flex}>
-                  AI reading: check names, numbers and dates before you rely on them.
+                  AI reading: check names, numbers and dates before you rely on
+                  them.
                 </AppText>
               </View>
             ) : null}
             {skipped > 0 ? (
               <AppText variant="caption" color="textMuted" style={styles.hint}>
-                Read the first {pages.length} pages; {skipped} more were left out. Split
-                the PDF to read the rest.
+                Read the first {pages.length} pages; {skipped} more were left
+                out. Split the PDF to read the rest.
               </AppText>
             ) : null}
             {!text.trim() ? (
               <AppText color="textMuted" style={styles.hint}>
-                No text found. Try a sharper photo, more light, or the other reader.
+                No text found. Try a sharper photo, more light, or the other
+                reader.
               </AppText>
             ) : null}
 
-            <BrutalBox offset={3} style={styles.editorBox} contentStyle={styles.editorFace}>
-              <TextInput
-                value={text}
-                onChangeText={setText}
-                multiline
-                textAlignVertical="top"
-                style={[styles.editor, { color: t.colors.text }]}
-                accessibilityLabel="The text, which you can edit"
-                testID="read-result"
-              />
+            {goal === 'word' && text.trim() ? (
+              <View style={[styles.note, { borderColor: t.colors.line }]}>
+                <Icon name="doc" size={18} color={t.colors.text} />
+                <AppText variant="caption" style={styles.flex}>
+                  Check the text, then tap “Save as Word” for a Word file you
+                  can edit.
+                </AppText>
+              </View>
+            ) : null}
+
+            <View style={styles.textHead}>
+              <SectionLabel>Text</SectionLabel>
+              {text.trim() ? (
+                <Button
+                  title={editing ? 'Done' : 'Edit'}
+                  icon={editing ? 'check' : 'edit'}
+                  iconPosition="left"
+                  variant="outline"
+                  size="md"
+                  onPress={() => setEditing(e => !e)}
+                />
+              ) : null}
+            </View>
+            <BrutalBox
+              offset={3}
+              style={styles.editorBox}
+              contentStyle={styles.editorFace}
+            >
+              {editing ? (
+                <TextInput
+                  value={text}
+                  onChangeText={setText}
+                  multiline
+                  autoFocus
+                  // Grows with the text, so the screen scrolls, not the box.
+                  scrollEnabled={false}
+                  textAlignVertical="top"
+                  style={[styles.editor, { color: t.colors.text }]}
+                  accessibilityLabel="The text, which you can edit"
+                  testID="read-result"
+                />
+              ) : (
+                <AppText selectable style={styles.editor} testID="read-result">
+                  {text}
+                </AppText>
+              )}
             </BrutalBox>
             <AppText variant="caption" color="textFaint" style={styles.hint}>
-              You can fix mistakes here before copying or saving.
+              {editing
+                ? 'Fix any mistakes, then tap Done.'
+                : 'Long-press to select a part. Tap Edit to fix mistakes.'}
             </AppText>
 
             {error ? <ErrorCard error={error} style={styles.section} /> : null}
 
             <View style={[styles.section, styles.actions]}>
+              {goal === 'word' ? wordButton : null}
               <View style={styles.row}>
                 <Button
                   title="Copy"
@@ -388,19 +509,14 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
                   iconPosition="left"
                   variant="outline"
                   size="md"
-                  onPress={() => act(async () => files.share([await textFile()]))}
+                  onPress={() =>
+                    act(async () => files.share([await textFile()]))
+                  }
                   disabled={!text.trim() || busy}
                   style={styles.flex}
                 />
               </View>
-              <Button
-                title={job.busy ? phaseLabel(job.phase, job.progress) : 'Save as Word'}
-                icon="doc"
-                variant="dark"
-                onPress={toWord}
-                disabled={!text.trim() || busy}
-                loading={job.busy}
-              />
+              {goal === 'word' ? null : wordButton}
               {usedReader === 'standard' && ocr.length > 0 ? (
                 <Button
                   title="Make a searchable PDF"
@@ -412,7 +528,9 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
               ) : null}
               {tables.length > 0 ? (
                 <Button
-                  title={`${tables.length === 1 ? 'Table' : `${tables.length} tables`} → Excel`}
+                  title={`${
+                    tables.length === 1 ? 'Table' : `${tables.length} tables`
+                  } → Excel`}
                   icon="sheet"
                   variant="highlight"
                   onPress={toSheet}
@@ -428,8 +546,15 @@ export function ReadTextScreen({ route }: ScreenProps<'ReadText'>) {
                 disabled={!text.trim() || busy}
               />
             </View>
-            {job.error ? <ErrorCard error={job.error} style={styles.section} /> : null}
-            <AppText variant="caption" color="textFaint" align="center" style={styles.section}>
+            {job.error ? (
+              <ErrorCard error={job.error} style={styles.section} />
+            ) : null}
+            <AppText
+              variant="caption"
+              color="textFaint"
+              align="center"
+              style={styles.section}
+            >
               Reading happened on your phone. Word, Excel and searchable PDF are
               made by the converter.
             </AppText>
@@ -466,7 +591,13 @@ const styles = StyleSheet.create({
   },
   editorBox: { marginTop: 14 },
   editorFace: { padding: 4 },
-  editor: { minHeight: 260, maxHeight: 460, padding: 10, fontSize: 15, lineHeight: 22 },
+  textHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 18,
+  },
+  editor: { minHeight: 200, padding: 12, fontSize: 15, lineHeight: 22 },
   actions: { gap: 12 },
   row: { flexDirection: 'row', gap: 12 },
 });

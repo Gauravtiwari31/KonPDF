@@ -31,7 +31,13 @@ export type RootStackParamList = {
   /** Pages from the scanner (or picked photos), and the scanner's own PDF. */
   ScanResult: { pages: LocalFile[]; pdf?: LocalFile | null };
   /** Pictures or PDFs to read text from. */
-  ReadText: WithFiles | undefined;
+  /**
+   * `autoStart`: start reading as soon as the screen opens (sent by NW with
+   * the files already attached). `goal: 'word'`: they want a Word file.
+   */
+  ReadText:
+    | (WithFiles & { autoStart?: boolean; goal?: 'text' | 'word' | null })
+    | undefined;
   DeveloperMode: undefined;
   /** Optional Google Drive backup. */
   Drive: undefined;

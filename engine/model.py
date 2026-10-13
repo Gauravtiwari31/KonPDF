@@ -290,6 +290,31 @@ APP_FEATURES = {
     ],
 }  # fmt: skip
 
+# "I want the words": text, editable, what does it say... (with a photo or scan, the
+# phone has to read them first).
+TEXT_WORDS = [
+    "text", "texts", "words", "editable", "type out", "type it", "type this", "transcribe", "ocr", "what does it say",
+    "what is written", "what's written", "whats written", "read this", "read it", "read the page", "read the words",
+    "kya likha", "likha hai", "likha hua", "padho", "padh do", "padhkar", "टेक्स्ट", "लिखा", "पढ़ो", "पढ़ दो", "texto", "texte",
+    "editável", "éditable", "modifiable", "bearbeitbar", "editierbar", "lee esto", "lis ceci", "lies das", "leia isso",
+]
+# Questions that only make sense as "read it for me".
+READ_ASKS = [
+    "what does it say", "what is written", "what's written", "whats written", "read this", "read it", "read the page",
+    "kya likha", "likha hai", "padho", "padh do", "लिखा", "पढ़ो", "transcribe", "type out", "type it", "type this",
+    "lee esto", "lis ceci", "lies das", "leia isso",
+]
+EDITABLE_WORDS = ["editable", "editable document", "editável", "éditable", "modifiable", "bearbeitbar", "editierbar"]
+WORD_TARGETS = {"docx", "doc", "odt", "rtf"}
+TEXT_TARGETS = WORD_TARGETS | {"txt", "md"}
+# "Put the picture in a Word file": the picture itself, not its words.
+AS_PICTURE = [
+    "as a picture", "as picture", "as an image", "as image", "as a photo", "as photo", "put the picture", "put the photo",
+    "put the image", "picture in", "photo in a word", "image in a word",
+]
+# File names that scanners and cameras give: such PDFs hold page pictures.
+SCAN_NAME = re.compile(r"(^|[\s_-])(scan|scanned|camscanner|adobe scan|scanner)|^(img|image|photo|pxl|dsc|whatsapp image)[\s_-]", re.I)
+
 GREETINGS = ["hi", "hii", "hello", "hey", "namaste", "namaskar", "नमस्ते", "नमस्कार", "hola", "bonjour", "salut", "hallo", "olá", "oi", "yo", "good morning"]
 THANKS = ["thanks", "thank you", "thx", "ty", "shukriya", "dhanyavad", "dhanyawad", "धन्यवाद", "शुक्रिया", "gracias", "merci", "danke", "obrigado", "obrigada"]
 QUESTION_STARTS = (
@@ -542,14 +567,18 @@ def extract(raw: str) -> Facts:
         f.text = quoted.group(1).strip()
     else:
         # "stamp DRAFT on it", "watermark it with confidential"
-        mark = re.search(r"(?:watermark|stamp)\s+(?:it\s+|this\s+|the\s+pdf\s+)?(?:with\s+|as\s+|of\s+)?([^\s,.]+(?:\s+[^\s,.]+)?)", raw, re.I)
+        mark = re.search(r"(?:watermark|stamp)\s+(?:it\s+|this\s+|the\s+pdf\s+)?(?:with\s+|as\s+|of\s+)?(?:(?:the\s+)?text\s+)?([^\s,.]+(?:\s+[^\s,.]+)?)", raw, re.I)
         if mark:
             skip = {"on", "it", "this", "to", "the", "a", "in", "across", "every", "all", "page", "pages", "pdf", "file"}
             words = [w for w in mark.group(1).split() if w.lower() not in skip]
             if words and words[0].lower() not in ("add", "please", "karo", "lagao"):
                 f.text = " ".join(words[:2]).upper()
 
+    # "watermark text DRAFT": "text" is what to stamp, not the TXT format.
+    watermark_text = re.search(r"(?:watermark|stamp)\s+(?:with\s+)?(?:the\s+)?(?:text|texto|texte)\b", text)
     for fmt, words in FORMAT_WORDS.items():
+        if fmt == "txt" and watermark_text:
+            continue
         for w in words:
             for m in re.finditer(r"(?<![\w.])\.?" + re.escape(w) + r"(?![\w])", text):
                 f.formats.append((m.start(), fmt))  # type: ignore[arg-type]
@@ -648,6 +677,61 @@ T: dict[str, dict[str, str]] = {
         "fr": "Compris ! Voici le plan : {summary}. Touchez Run quand vous êtes prêt.",
         "de": "Alles klar! Der Plan: {summary}. Tippe auf Run, wenn du bereit bist.",
         "pt": "Entendi! O plano: {summary}. Toque em Run quando quiser.",
+    },
+    # Reading the words in photos and scans happens on the phone (Read text).
+    "read_files": {
+        "en": "KonPDF reads the words right on your phone. Tap “Read text” below: {name} is already added. {then}",
+        "hi": "KonPDF आपके फ़ोन पर ही शब्द पढ़ लेता है। नीचे “Read text” दबाइए: {name} पहले से जुड़ा है। {then}",
+        "hi-Latn": "KonPDF phone pe hi words padh leta hai. Neeche “Read text” dabao: {name} pehle se add hai. {then}",
+        "es": "KonPDF lee las palabras en tu teléfono. Toca “Read text” abajo: {name} ya está añadido. {then}",
+        "fr": "KonPDF lit les mots directement sur votre téléphone. Touchez « Read text » ci-dessous : {name} est déjà ajouté. {then}",
+        "de": "KonPDF liest die Wörter direkt auf deinem Handy. Tippe unten auf „Read text“: {name} ist schon hinzugefügt. {then}",
+        "pt": "O KonPDF lê as palavras no seu celular. Toque em “Read text” abaixo: {name} já está adicionado. {then}",
+    },
+    "why_photo": {
+        "en": "A photo has no text inside it to convert: the words are part of the picture.",
+        "hi": "फ़ोटो में बदलने लायक टेक्स्ट नहीं होता: शब्द तस्वीर का ही हिस्सा होते हैं।",
+        "hi-Latn": "Photo mein convert karne layak text nahi hota: words tasveer ka hi hissa hote hain.",
+        "es": "Una foto no tiene texto dentro para convertir: las palabras son parte de la imagen.",
+        "fr": "Une photo ne contient pas de texte à convertir : les mots font partie de l’image.",
+        "de": "Ein Foto enthält keinen Text zum Umwandeln: Die Wörter sind Teil des Bildes.",
+        "pt": "Uma foto não tem texto dentro para converter: as palavras fazem parte da imagem.",
+    },
+    "why_scan": {
+        "en": "{name} looks like a scan, so its words are pictures of the pages, not text a converter can copy.",
+        "hi": "{name} स्कैन लगता है, इसलिए इसके शब्द पन्नों की तस्वीरें हैं, कॉपी होने वाला टेक्स्ट नहीं।",
+        "hi-Latn": "{name} scan lagta hai, isliye iske words pages ki tasveerein hain, copy hone wala text nahi.",
+        "es": "{name} parece un escaneo: sus palabras son imágenes de las páginas, no texto que se pueda copiar.",
+        "fr": "{name} ressemble à un scan : ses mots sont des images des pages, pas du texte à copier.",
+        "de": "{name} sieht nach einem Scan aus: Die Wörter sind Bilder der Seiten, kein kopierbarer Text.",
+        "pt": "{name} parece um escaneamento: as palavras são imagens das páginas, não texto que dá para copiar.",
+    },
+    "then_word": {
+        "en": "When it's done, tap “Save as Word” for a Word file you can edit.",
+        "hi": "पढ़ने के बाद “Save as Word” दबाइए, आपको बदलने लायक Word फ़ाइल मिलेगी।",
+        "hi-Latn": "Padhne ke baad “Save as Word” dabao, edit hone wali Word file mil jayegi.",
+        "es": "Al terminar, toca “Save as Word” para tener un Word que puedes editar.",
+        "fr": "Ensuite, touchez « Save as Word » pour un fichier Word modifiable.",
+        "de": "Danach tippe auf „Save as Word“ für eine bearbeitbare Word-Datei.",
+        "pt": "Quando terminar, toque em “Save as Word” para ter um Word editável.",
+    },
+    "then_text": {
+        "en": "Then copy the text, fix any mistakes, or save it as Word or a text file.",
+        "hi": "फिर टेक्स्ट कॉपी कीजिए, गलती ठीक कीजिए, या Word या टेक्स्ट फ़ाइल में सेव कीजिए।",
+        "hi-Latn": "Phir text copy karo, galti theek karo, ya Word ya text file mein save karo.",
+        "es": "Luego copia el texto, corrige errores o guárdalo como Word o archivo de texto.",
+        "fr": "Ensuite, copiez le texte, corrigez les erreurs ou enregistrez-le en Word ou en fichier texte.",
+        "de": "Dann kopiere den Text, korrigiere Fehler oder speichere ihn als Word- oder Textdatei.",
+        "pt": "Depois copie o texto, corrija erros ou salve como Word ou arquivo de texto.",
+    },
+    "scan_note": {
+        "en": "If it's a scanned PDF, ask me to read the text instead: a scan has no text to copy.",
+        "hi": "अगर यह स्कैन की हुई PDF है, तो मुझसे टेक्स्ट पढ़ने को कहिए: स्कैन में कॉपी होने वाला टेक्स्ट नहीं होता।",
+        "hi-Latn": "Agar yeh scan ki hui PDF hai, to mujhse text padhne ko kaho: scan mein copy hone wala text nahi hota.",
+        "es": "Si es un PDF escaneado, pídeme mejor que lea el texto: un escaneo no tiene texto para copiar.",
+        "fr": "S’il s’agit d’un PDF scanné, demandez-moi plutôt de lire le texte : un scan n’a pas de texte à copier.",
+        "de": "Ist es ein gescanntes PDF, bitte mich lieber, den Text zu lesen: Ein Scan hat keinen kopierbaren Text.",
+        "pt": "Se for um PDF escaneado, peça para eu ler o texto: um escaneamento não tem texto para copiar.",
     },
     "need_files": {
         "en": "Attach your file with the + button, then tap Run.",
@@ -1517,6 +1601,9 @@ class NW:
         for topic, words in OUT_OF_SCOPE.items():
             if _has(text, words):
                 return self._answer(lang, _t(topic, lang), None, _context_kind(files, Facts()))
+        routed = self._read_route(text, message, files, lang)
+        if routed:
+            return routed
         for feature, words in APP_FEATURES.items():
             # "scan this and make a pdf" with a photo attached is a conversion, not the
             # scanner; "extract text" from a PDF or document is a conversion to TXT.
@@ -1525,9 +1612,14 @@ class NW:
             if feature == "read_text" and _context_kind(files, Facts()) in ("pdf", "document", "sheet") and not _has(text, ["ocr", "scan", "searchable"]):
                 continue
             if _has(text, words):
+                if feature == "read_text" and files:
+                    return self._read_answer(lang, files, word=_has(text, ["word", "docx", "वर्ड"]))
                 return self._answer(lang, _t(feature, lang), None, _context_kind(files, Facts()), open=feature)
 
         facts = extract(message)
+        # "Make it editable" for a PDF or document: that means Word.
+        if not facts.target and files and _has(text, EDITABLE_WORDS) and _context_kind(files, facts) in ("pdf", "document"):
+            facts.target = "docx"
         # Follow-ups build on what was asked before: "also make it under 100 kb",
         # "make it png instead", "password: abcd" after NW asked for one.
         if earlier and is_refinement(text, facts):
@@ -1553,6 +1645,44 @@ class NW:
             return self._answer(lang, _t(f"unknown_{kind}", lang, name=name), None, kind)
         return self._answer(lang, _t("unknown", lang), None, kind)
 
+    def _read_answer(self, lang: str, files: list[dict[str, Any]], word: bool, why: str | None = None) -> dict[str, Any]:
+        """Send the files to Read text (on the phone), saying why and what to tap next."""
+        name = files[0].get("name") if len(files) == 1 else f"{len(files)} files"
+        reply = _t("read_files", lang, name=name, then=_t("then_word" if word else "then_text", lang))
+        if why:
+            reply = _t(why, lang, name=name) + " " + reply
+        answer = self._answer(lang, reply, None, _context_kind(files, Facts()), open="read_text")
+        answer["goal"] = "word" if word else "text"
+        if why == "why_photo" and word and lang == "en":
+            answer["suggestions"] = ["Put the picture in a Word file", *answer["suggestions"][:2]]
+        return answer
+
+    def _read_route(self, text: str, message: str, files: list[dict[str, Any]], lang: str) -> dict[str, Any] | None:
+        """
+        Requests for the words in a photo or a scanned PDF ("convert to text", "make
+        it editable", "photo to Word", "isme kya likha hai"). A converter can only
+        copy text that is already text; these need reading, which the phone does.
+        """
+        if not files or _has(text, AS_PICTURE):
+            return None
+        kind = _context_kind(files, Facts())
+        facts = extract(message)
+        # "Add watermark text …", "compress it": a job, not reading.
+        if facts.actions - {"convert", "extract"}:
+            return None
+        target = next((f for f in [facts.target, *facts.formats] if f in TEXT_TARGETS), None)
+        wants_text = _has(text, TEXT_WORDS) or target is not None
+        word = target in WORD_TARGETS or _has(text, ["word", "docx", "वर्ड", *EDITABLE_WORDS])
+        if kind == "image" and wants_text:
+            return self._read_answer(lang, files, word, "why_photo")
+        if kind == "pdf":
+            scanned = all(SCAN_NAME.search(str(f.get("name", ""))) for f in files)
+            if scanned and wants_text:
+                return self._read_answer(lang, files, word, "why_scan")
+            if _has(text, READ_ASKS):
+                return self._read_answer(lang, files, word)
+        return None
+
     def _plan_reply(self, facts: Facts, files: list[dict[str, Any]], lang: str) -> dict[str, Any] | None:
         """A plan answer for `facts`, a question for a missing detail, or None if there's nothing to do."""
         kind = _context_kind(files, facts)
@@ -1577,6 +1707,8 @@ class NW:
             reply += " " + note
         if not files:
             reply += " " + _t("need_files", lang)
+        elif kind == "pdf" and plan.steps[-1]["tool"] == "convert" and plan.steps[-1]["params"].get("to") in TEXT_TARGETS:
+            reply += " " + _t("scan_note", lang)
         return self._answer(lang, reply, {"steps": plan.steps, "summary": summary}, kind)
 
     def explain(self, code: str, lang: str) -> dict[str, Any]:

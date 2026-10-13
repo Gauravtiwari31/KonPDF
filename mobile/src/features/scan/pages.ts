@@ -54,4 +54,6 @@ export function joinPages(texts: string[]): string {
 
 /** "Letter.pdf" → "Letter"; scans and pictures keep their names too. */
 export const baseName = (inputs: LocalFile[]) =>
-  (inputs[0]?.name ?? 'Text').replace(/\.[^.]+$/, '').replace(/ - page \d+$/, '') || 'Text';
+  (inputs[0]?.name ?? 'Text')
+    .replace(/\.[^.]+$/, '')
+    .replace(/ - page \d+$/, '') || 'Text';
