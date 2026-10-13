@@ -38,7 +38,7 @@ In the Pages project, go to **Custom domains → Set up a custom domain** and en
 
 ## 3. Optional: the engine on your domain too
 
-The site uses `https://konpdf-engine.onrender.com`, which works as it is. To use your own name instead:
+The site uses `https://konpdf-api.notwork.world`, set up like this (to go back, put `https://konpdf-engine.onrender.com` in `web/site.config.json`):
 
 1. Render → **konpdf-engine → Settings → Custom Domains → Add**: `konpdf-api.notwork.world`.
 2. Cloudflare → **notwork.world → DNS → Add record**: type `CNAME`, name `konpdf-api`, target `konpdf-engine.onrender.com`, **Proxy status: DNS only** (grey cloud), so Render can issue the certificate.
