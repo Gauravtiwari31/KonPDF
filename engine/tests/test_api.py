@@ -81,6 +81,18 @@ def test_nw_chat(client):
     assert "Passwort" in explain["reply"]
 
 
+def test_nw_chat_on_the_website_points_to_the_app(client):
+    photo = [{"name": "notes.jpg", "mime": "image/jpeg", "size": 1}]
+    app = client.post("/api/nw/chat", json={"message": "convert this photo to text", "files": photo}).json()
+    web = client.post("/api/nw/chat", json={"message": "convert this photo to text", "files": photo, "client": "web"}).json()
+    assert app["open"] == web["open"] == "read_text"
+    assert "Android app" in web["reply"] and "Read text" not in web["reply"]
+    scan = client.post("/api/nw/chat", json={"message": "scan karo", "client": "web"}).json()
+    assert scan["open"] == "scan" and "Android app" in scan["reply"]
+    plan = client.post("/api/nw/chat", json={"message": "compress pdf", "files": [{"name": "a.pdf", "mime": "application/pdf", "size": 1}], "client": "web"}).json()
+    assert plan["plan"]["steps"][0]["tool"] == "compress_pdf"
+
+
 # ------------------------------------------------------------ friendly failures
 
 

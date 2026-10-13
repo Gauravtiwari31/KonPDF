@@ -8,6 +8,8 @@ No video, no audio: on purpose. Scanning and reading text happen on the phone (S
 
 **Optional Google Drive backup:** sign in with Google in **Settings → Google Drive** and the PDFs and results you make are kept in a KonPDF folder in your own Drive, automatically or with one tap. KonPDF asks only for `drive.file`, so it sees just the files it creates there. It needs a one-time, free registration in Google Cloud: **[docs/google-drive-setup.md](docs/google-drive-setup.md)**.
 
+**On the web:** the same tools and NW run in the browser at **[konpdf.notwork.world](https://konpdf.notwork.world)** (no scanner or text reading there; those are in the app). Deploying it on Cloudflare Pages, and AdSense: **[docs/deploy-website.md](docs/deploy-website.md)**.
+
 The full spec, architecture and build plan are in **[detail.md](detail.md)**.
 
 ## Test the APK
@@ -20,14 +22,14 @@ To use a different engine (your own Render service, or your computer while devel
 
 ## Google Play
 
-The project is ready for Google Play: target API 36, 16 KB page support, a signed app bundle (`bundleRelease`, with your upload key), a [privacy policy](docs/privacy-policy.md), and the store listing (text, icon, feature graphic) in `mobile/fastlane/metadata/android/en-US/`. The steps that need the owner (developer account, upload key, screenshots, Play Console forms with the Data safety answers) are in **[docs/play-store.md](docs/play-store.md)**.
+The project is ready for Google Play: target API 36, 16 KB page support, a signed app bundle (`bundleRelease`, with your upload key), a [privacy policy](docs/privacy-policy.md) (published at <https://konpdf.notwork.world/app-privacy>), and the store listing (text, icon, feature graphic) in `mobile/fastlane/metadata/android/en-US/`. The steps that need the owner (developer account, upload key, screenshots, Play Console forms with the Data safety answers) are in **[docs/play-store.md](docs/play-store.md)**.
 
 ## Repository layout
 
 ```
 .
 ├── detail.md            what KonPDF is, every feature, architecture, build plan
-├── docs/                Render deployment, Google Drive setup, Google Play guide, privacy policy
+├── docs/                Render and website deployment, Google Drive setup, Google Play guide, privacy policy
 ├── engine/              Python conversion engine (FastAPI)
 │   ├── model.py         NW, the assistant (built in: no API key, no download)
 │   ├── app/
@@ -38,8 +40,9 @@ The project is ready for Google Play: target API 36, 16 KB page support, a signe
 │   │   ├── pipeline.py  runs single tools and NW's multi-step plans (whitelisted)
 │   │   ├── converters/  images · pdf · documents · sheets · office (LibreOffice)
 │   │   └── tools/       resize · enhance · pdf_tools
-│   ├── tests/           842 tests
+│   ├── tests/           843 tests
 │   └── Dockerfile       Python + LibreOffice + Noto fonts
+├── web/                 the website: tools in the browser, policies (Vite + React, pre-rendered, Cloudflare Pages)
 └── mobile/              React Native app (Android)
     ├── android/         native project; app/src/main/java/com/konpdf/device = file module
     ├── fastlane/        Google Play listing: text, icon, feature graphic, release notes

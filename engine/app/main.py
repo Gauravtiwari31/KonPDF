@@ -287,6 +287,8 @@ class ChatRequest(BaseModel):
     files: list[FileMeta] = Field(default_factory=list, max_length=50)
     history: list[Turn] = Field(default_factory=list, max_length=20)
     lang: str | None = None
+    # "web" for the website, which has no camera scanner or Read text.
+    client: str = Field(default="app", max_length=10)
 
 
 @app.post("/api/nw/chat")
@@ -298,6 +300,7 @@ async def nw_chat(request: Request, body: ChatRequest):
             lang_hint=preferred,
             files=[f.model_dump() for f in body.files],
             history=[t.model_dump() for t in body.history],
+            client=body.client,
         )
     )
     return {"ok": True, **reply}

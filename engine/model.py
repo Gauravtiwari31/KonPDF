@@ -724,6 +724,15 @@ T: dict[str, dict[str, str]] = {
         "de": "Dann kopiere den Text, korrigiere Fehler oder speichere ihn als Word- oder Textdatei.",
         "pt": "Depois copie o texto, corrija erros ou salve como Word ou arquivo de texto.",
     },
+    "app_only": {
+        "en": "Scanning with the camera and reading the words on photos and scanned PDFs happen in the KonPDF Android app, right on your phone, so they aren't on the website. Get the app from the Download page; everything else I can do here.",
+        "hi": "कैमरे से स्कैन करना और फ़ोटो या स्कैन की हुई PDF के शब्द पढ़ना KonPDF के Android ऐप में, आपके फ़ोन पर ही होता है, इसलिए यह वेबसाइट पर नहीं है। ऐप Download पेज से लीजिए; बाकी सब मैं यहीं कर सकता हूँ।",
+        "hi-Latn": "Camera se scan karna aur photo ya scan ki hui PDF ke shabd padhna KonPDF ke Android app mein, aapke phone par hi hota hai, isliye yeh website par nahi hai. App Download page se lo; baaki sab main yahin kar sakta hoon.",
+        "es": "Escanear con la cámara y leer el texto de fotos y PDF escaneados se hace en la app de KonPDF para Android, en tu teléfono, así que no está en la web. Descarga la app en la página Descargar; todo lo demás lo hago aquí.",
+        "fr": "Scanner avec l’appareil photo et lire le texte des photos et des PDF scannés se fait dans l’application Android KonPDF, sur votre téléphone : ce n’est donc pas sur le site. Téléchargez l’application depuis la page Télécharger ; pour le reste, je m’en occupe ici.",
+        "de": "Scannen mit der Kamera und Text aus Fotos und gescannten PDFs lesen gibt es in der KonPDF-App für Android, direkt auf deinem Handy, deshalb nicht auf der Website. Hol dir die App auf der Download-Seite; alles andere mache ich hier.",
+        "pt": "Escanear com a câmera e ler o texto de fotos e PDFs escaneados acontece no app KonPDF para Android, no seu celular, por isso não está no site. Baixe o app na página Download; todo o resto eu faço aqui.",
+    },
     "scan_note": {
         "en": "If it's a scanned PDF, ask me to read the text instead: a scan has no text to copy.",
         "hi": "अगर यह स्कैन की हुई PDF है, तो मुझसे टेक्स्ट पढ़ने को कहिए: स्कैन में कॉपी होने वाला टेक्स्ट नहीं होता।",
@@ -1580,6 +1589,20 @@ class NW:
         lang_hint: str | None = None,
         files: list[dict[str, Any]] | None = None,
         history: list[dict[str, Any]] | None = None,
+        client: str = "app",
+    ) -> dict[str, Any]:
+        answer = self._reply(message, lang_hint, files, history)
+        # The website has no camera scanner or Read text: point to the app.
+        if client == "web" and answer.get("open"):
+            answer["reply"] = _t("app_only", answer["lang"])
+        return answer
+
+    def _reply(
+        self,
+        message: str,
+        lang_hint: str | None,
+        files: list[dict[str, Any]] | None,
+        history: list[dict[str, Any]] | None,
     ) -> dict[str, Any]:
         files = files or []
         history = history or []

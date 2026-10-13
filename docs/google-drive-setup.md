@@ -20,7 +20,7 @@ One permission (scope): `https://www.googleapis.com/auth/drive.file`. With it, K
 
 Open **Google Auth Platform** (also reachable as **APIs & Services → OAuth consent screen**) and click **Get started** if asked.
 
-1. **Branding:** app name `KonPDF`, user support email, developer contact email. Home page: `https://github.com/NotWork-world/KonPDF`. Privacy policy: `https://github.com/NotWork-world/KonPDF/blob/main/docs/privacy-policy.md` (it already covers Drive and Google's Limited Use rules).
+1. **Branding:** app name `KonPDF`, user support email, developer contact email. Home page: `https://konpdf.notwork.world`. Privacy policy: `https://konpdf.notwork.world/app-privacy` (the website shows [docs/privacy-policy.md](privacy-policy.md), which already covers Drive and Google's Limited Use rules). Under **Authorized domains** add `notwork.world`; you can prove you own it in [Google Search Console](https://search.google.com/search-console) with a DNS TXT record in Cloudflare, which brand verification needs.
 2. **Audience:** **External**.
 3. **Data access → Add or remove scopes:** add `.../auth/drive.file` ("See, edit, create and delete only the specific Google Drive files you use with this app"). **Save**.
 

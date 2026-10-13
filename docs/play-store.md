@@ -80,13 +80,13 @@ The icon and feature graphic are drawn from the app's own icon and fonts: after 
 
 **Screenshots:** 2 to 8 phone screenshots (portrait, 1080 × 1920 or the phone's own size). Good ones for KonPDF: the Convert tab, a scan with its pages, the Resizer showing "about 48 KB", NW turning a request into a plan, a Result card with the size change, and Settings → Google Drive. Take them on the phone (power + volume down), in light mode, with tidy file names. Save them in `images/phoneScreenshots/` next to the others to keep everything in one place.
 
-**Category:** Productivity. **Contact details:** an email address (required and shown publicly) and the website `https://github.com/NotWork-world/KonPDF`.
+**Category:** Productivity. **Contact details:** an email address (required and shown publicly) and the website `https://konpdf.notwork.world`.
 
 ## 6. App content (Policy → App content)
 
 | Form | Answer |
 |---|---|
-| **Privacy policy** | `https://github.com/NotWork-world/KonPDF/blob/main/docs/privacy-policy.md` |
+| **Privacy policy** | `https://konpdf.notwork.world/app-privacy` |
 | **Ads** | No ads |
 | **App access** | All functionality is available without special access. Google Drive backup is optional and works with any Google account (see the note below) |
 | **Content rating** | Category: Utility, Productivity, Communication, or Other. No violence, sexuality, language, drugs, gambling. Users don't interact with each other and the app shares no location. Expected rating: Everyone / 3+ |
