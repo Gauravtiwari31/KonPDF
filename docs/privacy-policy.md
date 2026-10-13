@@ -2,7 +2,7 @@
 
 **Effective date:** 12 October 2026
 
-KonPDF is an Android app for scanning, converting, resizing and editing everyday files, made by Gaurav Tiwari ([github.com/Gauravtiwari31](https://github.com/Gauravtiwari31)). This policy explains what happens to your information when you use it. In short: **no account, no ads, no tracking**, and your files are only ever used to do what you asked.
+KonPDF is an Android app for scanning, converting, resizing and editing everyday files, made by Gaurav Tiwari at NotWork.world ([github.com/NotWork-world](https://github.com/NotWork-world)). This policy explains what happens to your information when you use it. In short: **no account, no ads, no tracking**, and your files are only ever used to do what you asked.
 
 ## What stays on your phone
 
@@ -51,8 +51,8 @@ KonPDF is a general-purpose tool and is not directed at children under 13.
 
 ## Changes
 
-If this policy changes, the new version will be posted here with a new effective date. The full history of this page is in the [project's repository](https://github.com/Gauravtiwari31/KonPDF/commits/main/docs/privacy-policy.md).
+If this policy changes, the new version will be posted here with a new effective date. The full history of this page is in the [project's repository](https://github.com/NotWork-world/KonPDF/commits/main/docs/privacy-policy.md).
 
 ## Contact
 
-Questions or requests about privacy: open an issue at [github.com/Gauravtiwari31/KonPDF/issues](https://github.com/Gauravtiwari31/KonPDF/issues), or use the developer email shown on KonPDF's Google Play page.
+Questions or requests about privacy: open an issue at [github.com/NotWork-world/KonPDF/issues](https://github.com/NotWork-world/KonPDF/issues), or use the developer email shown on KonPDF's Google Play page.

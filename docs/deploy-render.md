@@ -8,8 +8,8 @@ The repository already has everything Render needs: [`render.yaml`](../render.ya
 
 1. Sign in at <https://dashboard.render.com> (signing in with GitHub is easiest).
 2. Click **New +** → **Blueprint**.
-3. Connect your GitHub account if asked, and give Render access to the **KonPDF** repository.
-4. Pick **Gauravtiwari31/KonPDF**, branch **main**. Render reads `render.yaml` and shows one service, **konpdf-engine** (Docker, Free, Singapore).
+3. Connect GitHub if asked, and install Render's GitHub app on the **NotWork-world** organization with access to the **KonPDF** repository (the repository belongs to the organization, so access to a personal account isn't enough).
+4. Pick **NotWork-world/KonPDF**, branch **main**. Render reads `render.yaml` and shows one service, **konpdf-engine** (Docker, Free, Singapore).
 5. Click **Apply** (or **Deploy Blueprint**).
 
 The first build takes about 10 minutes, because it installs LibreOffice. Later builds are faster.

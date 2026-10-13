@@ -12,7 +12,7 @@ The full spec, architecture and build plan are in **[detail.md](detail.md)**.
 
 ## Test the APK
 
-Download the latest APK from the [Releases page](https://github.com/Gauravtiwari31/KonPDF/releases) (also at [apk/KonPDF.apk](apk/KonPDF.apk)). It runs on ARM Android phones, Android 7.0 and newer.
+Download the latest APK from the [Releases page](https://github.com/NotWork-world/KonPDF/releases) (also at [apk/KonPDF.apk](apk/KonPDF.apk)). It runs on ARM Android phones, Android 7.0 and newer.
 
 Install it (allow installing from this source when Android asks) and open it: from v0.0.4 it connects to the KonPDF engine on Render (`https://konpdf-engine.onrender.com`) by itself, on Wi-Fi or mobile data. Nothing to set up.
 
